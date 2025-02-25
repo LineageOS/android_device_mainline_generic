@@ -1,0 +1,11 @@
+type device_generic_settings, domain, coredomain;
+type device_generic_settings_exec, system_file_type, exec_type, file_type;
+
+init_daemon_domain(device_generic_settings)
+
+allow device_generic_settings system_file:file execute_no_trans;
+allow device_generic_settings settings_service:service_manager find;
+
+binder_call(device_generic_settings, servicemanager)
+binder_call(device_generic_settings, system_server)
+binder_call(system_server, device_generic_settings)

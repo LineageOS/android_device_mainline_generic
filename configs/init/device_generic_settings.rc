@@ -1,0 +1,9 @@
+service device_generic_settings /product/bin/device_generic_settings.sh
+    class late_start
+    user root
+    group root
+    oneshot
+    disabled
+
+on property:sys.boot_completed=1
+    start device_generic_settings

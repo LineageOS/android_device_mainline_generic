@@ -39,6 +39,10 @@ PRODUCT_PACKAGES += \
     ueventd.generic.rc
 
 PRODUCT_PACKAGES += \
+    device_generic_settings.rc \
+    device_generic_settings.sh
+
+PRODUCT_PACKAGES += \
     use_memfd.rc \
     zram.rc
 

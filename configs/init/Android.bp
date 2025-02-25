@@ -4,6 +4,13 @@
 //
 
 prebuilt_etc {
+    name: "device_generic_settings.rc",
+    src: "device_generic_settings.rc",
+    sub_dir: "init",
+    product_specific: true,
+}
+
+prebuilt_etc {
     name: "init.generic.rc",
     src: "init.generic.rc",
     sub_dir: "init/hw",
