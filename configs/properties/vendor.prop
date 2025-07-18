@@ -1,2 +1,5 @@
+# Bluetooth
+persist.bluetooth.a2dp_aac.vbr_supported=true
+
 # Input (tablet2multitouch)
 vendor.tablet2multitouch.device_names=QEMU QEMU USB Tablet,QEMU Virtio Tablet
