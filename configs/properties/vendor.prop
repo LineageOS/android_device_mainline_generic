@@ -1,4 +1,12 @@
 # Bluetooth
+# Set the Bluetooth Class of Device
+# Service Field: 0x1A -> 26
+#    Bit 17: Networking
+#    Bit 19: Capturing
+#    Bit 20: Object Transfer
+# MAJOR_CLASS: 0x01 -> 1 (Computer)
+# MINOR_CLASS: 0x04 -> 4 (Desktop workstation)
+bluetooth.device.class_of_device=26,1,4
 persist.bluetooth.a2dp_aac.vbr_supported=true
 
 # Input (tablet2multitouch)
