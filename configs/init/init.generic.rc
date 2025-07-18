@@ -31,6 +31,9 @@ on init
     start console_ttyS0
 
 # Display
+on early-init
+    setprop ro.sf.lcd_density ${ro.boot.lcd_density:-160}
+
 on property:sys.bootstat.first_boot_completed=1
     write /sys/class/vtconsole/vtcon0/bind 0
     write /sys/class/vtconsole/vtcon1/bind 0
