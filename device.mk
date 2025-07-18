@@ -44,6 +44,10 @@ PRODUCT_PACKAGES += \
     use_memfd.rc
 endif
 
+# Input
+PRODUCT_COPY_FILES += \
+    $(call find-copy-subdir-files,*.kl,$(DEVICE_PATH)/configs/input/,$(TARGET_COPY_OUT_VENDOR)/usr/keylayout/)
+
 # Images
 PRODUCT_BUILD_BOOT_IMAGE := false
 PRODUCT_BUILD_RAMDISK_IMAGE := true
