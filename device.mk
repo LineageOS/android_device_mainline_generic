@@ -34,8 +34,7 @@ PRODUCT_PACKAGES += \
 
 PRODUCT_PACKAGES += \
     fstab.generic \
-    init.generic.rc \
-    init.recovery.generic.rc
+    init.generic.rc
 
 $(call soong_config_set,mainline_common_libinit,set_properties_from,dmi_id)
 
@@ -51,7 +50,6 @@ PRODUCT_COPY_FILES += \
 # Images
 PRODUCT_BUILD_BOOT_IMAGE := false
 PRODUCT_BUILD_RAMDISK_IMAGE := true
-PRODUCT_BUILD_RECOVERY_IMAGE := true
 PRODUCT_USE_DYNAMIC_PARTITION_SIZE := true
 
 # Kernel
