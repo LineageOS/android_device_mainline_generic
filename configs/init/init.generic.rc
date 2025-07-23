@@ -38,6 +38,14 @@ on property:sys.bootstat.first_boot_completed=1
     write /sys/class/vtconsole/vtcon0/bind 0
     write /sys/class/vtconsole/vtcon1/bind 0
 
+# Light
+service vendor.light-default /vendor/bin/hw/android.hardware.light-service.lineage
+    class hal
+    user root
+    group root
+    shutdown critical
+    override
+
 # Mount
 on late-fs
     setprop ro.crypto.state unsupported
