@@ -20,6 +20,9 @@ BOARD_KERNEL_CMDLINE := \
     $(MAINLINE_COMMON_ANDROIDBOOT_PARAMS) \
     $(MAINLINE_COMMON_KERNEL_PARAMS) \
     androidboot.hardware=generic \
+    androidboot.hypervisor.version=1 \
+    androidboot.hypervisor.vm.supported=1 \
+    androidboot.hypervisor.protected_vm.supported=0 \
     androidboot.init_fatal_pause=true \
     androidboot.selinux=permissive \
     androidboot.verifiedbootstate=orange \

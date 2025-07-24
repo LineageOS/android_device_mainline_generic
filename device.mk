@@ -77,3 +77,6 @@ PRODUCT_SHIPPING_API_LEVEL := 33
 # Soong namespaces
 PRODUCT_SOONG_NAMESPACES += \
     $(DEVICE_PATH)
+
+# Virtualization
+$(call inherit-product, packages/modules/Virtualization/apex/product_packages.mk)
