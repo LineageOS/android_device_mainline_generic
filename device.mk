@@ -6,6 +6,7 @@
 DEVICE_PATH := device/mainline/generic
 
 # Inherit from mainline/common
+TARGET_CAMERA_PROVIDER_HAL := external
 TARGET_ENABLE_LOGCAT_TO_SERIAL := true
 TARGET_SUPPORTS_SUSPEND := false
 TARGET_SUPPORTS_USB_ACCESSORY_MODE := false
