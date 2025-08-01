@@ -46,6 +46,10 @@ service vendor.light-default /vendor/bin/hw/android.hardware.light-service.linea
     shutdown critical
     override
 
+# Kernel modules
+on early-init
+    exec u:r:vendor_modprobe:s0 -- /vendor/bin/modprobe -d /vendor/lib/modules zram.ko
+
 # Mount
 on late-fs
     setprop ro.crypto.state unsupported

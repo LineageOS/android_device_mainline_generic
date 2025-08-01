@@ -38,6 +38,9 @@ PRODUCT_PACKAGES += \
     init.generic.rc \
     ueventd.generic.rc
 
+PRODUCT_PACKAGES += \
+    zram.rc
+
 $(call soong_config_set,mainline_common_libinit,set_properties_from,dmi_id)
 
 ifeq ($(MAINLINE_GENERIC_USE_PRISTINE_KERNEL),true)
