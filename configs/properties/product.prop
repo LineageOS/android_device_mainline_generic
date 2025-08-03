@@ -1,2 +1,5 @@
 # ADB
 service.adb.tcp.port=5555
+
+# SetupWizard
+ro.setupwizard.mode=DISABLED
