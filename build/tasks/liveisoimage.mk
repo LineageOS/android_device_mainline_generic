@@ -4,6 +4,7 @@
 #
 
 ifeq ($(USES_DEVICE_MAINLINE_GENERIC),true)
+ifeq ($(TARGET_DEVICE),Generic_x86_64)
 
 BOOTMGR_SHARED_LIBS_64_DIR := prebuilts/bootmgr/lib64
 BOOTMGR_TOOLS_64_EXEC_ENV := LD_LIBRARY_PATH=$(BOOTMGR_SHARED_LIBS_64_DIR) $(BOOTMGR_SHARED_LIBS_64_DIR)/ld-linux-x86-64.so.2
@@ -90,4 +91,5 @@ liveisoimage-nodeps:
 	@echo "make $(INSTALLED_LIVEISOIMAGE_TARGET): ignoring dependencies"
 	$(call make-liveisoimage-target,$(INSTALLED_LIVEISOIMAGE_TARGET))
 
+endif # TARGET_DEVICE == Generic_x86_64
 endif # USES_DEVICE_PC_GENERIC_X86_64_PC
