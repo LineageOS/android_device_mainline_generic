@@ -34,7 +34,8 @@ PRODUCT_PACKAGES += \
 
 PRODUCT_PACKAGES += \
     fstab.generic \
-    init.generic.rc
+    init.generic.rc \
+    ueventd.generic.rc
 
 $(call soong_config_set,mainline_common_libinit,set_properties_from,dmi_id)
 
