@@ -68,6 +68,7 @@ TARGET_BOARD_PLATFORM := generic
 
 # Properties
 TARGET_PRODUCT_PROP += $(DEVICE_PATH)/configs/properties/product.prop
+TARGET_VENDOR_PROP += $(DEVICE_PATH)/configs/properties/vendor.prop
 
 # Ramdisk
 BOARD_RAMDISK_USE_LZ4 := true
