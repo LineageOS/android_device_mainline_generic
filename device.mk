@@ -81,5 +81,10 @@ PRODUCT_SHIPPING_API_LEVEL := 33
 PRODUCT_SOONG_NAMESPACES += \
     $(DEVICE_PATH)
 
+# Utilities
+PRODUCT_COPY_FILES += \
+    $(DEVICE_PATH)/configs/misc/pci.ids:$(TARGET_COPY_OUT_VENDOR)/pci.ids \
+    $(DEVICE_PATH)/configs/misc/usb.ids:$(TARGET_COPY_OUT_VENDOR)/usb.ids
+
 # Virtualization
 $(call inherit-product, packages/modules/Virtualization/apex/product_packages.mk)
