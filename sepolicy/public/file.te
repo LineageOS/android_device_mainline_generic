@@ -1,0 +1,2 @@
+type efivarfs, fs_type;
+type virtiofs, sdcard_type, fs_type, mlstrustedobject;

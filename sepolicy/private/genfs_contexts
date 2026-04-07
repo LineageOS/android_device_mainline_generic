@@ -1,0 +1,2 @@
+genfscon efivarfs / u:object_r:efivarfs:s0
+genfscon virtiofs / u:object_r:virtiofs:s0

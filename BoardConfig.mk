@@ -78,6 +78,10 @@ TARGET_VENDOR_PROP += \
 # Ramdisk
 BOARD_RAMDISK_USE_LZ4 := true
 
+# SELinux
+SYSTEM_EXT_PRIVATE_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy/private
+SYSTEM_EXT_PUBLIC_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy/public
+
 # VINTF
 DEVICE_MANIFEST_FILE := \
     $(DEVICE_PATH)/configs/vintf/manifest.xml
