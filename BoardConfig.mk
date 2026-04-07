@@ -45,6 +45,10 @@ else
 TARGET_KERNEL_SOURCE := kernel/virt/virtio
 endif
 
+# Kernel modules
+BOOT_KERNEL_MODULES_FINDER := $(DEVICE_PATH)/configs/kernel/boot_kernel_modules_finder.sh
+TARGET_AUTO_COLLECT_KERNEL_MODULE_DEPS := true
+
 # OTA
 TARGET_SKIP_OTA_PACKAGE := true
 
