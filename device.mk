@@ -6,8 +6,6 @@
 DEVICE_PATH := device/mainline/generic
 
 # Inherit from mainline/common
-TARGET_HAS_BATTERY := false
-TARGET_HAS_VIBRATOR := false
 TARGET_SUPPORTS_SUSPEND := false
 TARGET_SUPPORTS_USB_ACCESSORY_MODE := false
 TARGET_USES_FRAMEBUFFER_DISPLAY := true
