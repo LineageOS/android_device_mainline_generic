@@ -39,14 +39,10 @@ PRODUCT_PACKAGES += \
     ueventd.generic.rc
 
 PRODUCT_PACKAGES += \
+    use_memfd.rc \
     zram.rc
 
 $(call soong_config_set,mainline_common_libinit,set_properties_from,dmi_id)
-
-ifeq ($(MAINLINE_GENERIC_USE_PRISTINE_KERNEL),true)
-PRODUCT_PACKAGES += \
-    use_memfd.rc
-endif
 
 # Input
 PRODUCT_COPY_FILES += \

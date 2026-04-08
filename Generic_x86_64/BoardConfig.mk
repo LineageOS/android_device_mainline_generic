@@ -21,7 +21,6 @@ BOARD_KERNEL_CMDLINE += \
 
 # Kernel
 BOARD_KERNEL_IMAGE_NAME := bzImage
-ifeq ($(MAINLINE_GENERIC_USE_PRISTINE_KERNEL),true)
 TARGET_KERNEL_CONFIG := x86_64_defconfig
 TARGET_KERNEL_CONFIG_EXT += \
     $(TARGET_DEVICE_PATH)/configs/kernel/debian-amd64.config \
@@ -32,9 +31,3 @@ TARGET_KERNEL_CONFIG_EXT += \
     kernel/mainline/configs/fragments/android-base-conditional/CONFIG_X86_64-y.config \
     kernel/mainline/configs/fragments/common.config \
     kernel/mainline/configs/fragments/y/fbcon.config
-else
-TARGET_KERNEL_CONFIG := gki_defconfig
-TARGET_KERNEL_CONFIG_EXT := \
-    $(TARGET_DEVICE_PATH)/configs/kernel/basic_x86_64_pc.config \
-    kernel/mainline/configs/fragments/y/fbcon.config
-endif
