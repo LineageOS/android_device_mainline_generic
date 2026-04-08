@@ -39,6 +39,7 @@
 #include <android-base/logging.h>
 #include <android-base/stringify.h>
 #include <android-base/stringprintf.h>
+#include <modprobe/modprobe.h>
 #include <private/android_filesystem_config.h>
 
 #include "debug_ramdisk.h"
@@ -59,6 +60,12 @@ namespace android {
 namespace init {
 
 namespace {
+
+enum class BootMode {
+    NORMAL_MODE,
+    RECOVERY_MODE,
+    CHARGER_MODE,
+};
 
 void FreeRamdisk(DIR* dir, dev_t dev) {
     int dfd = dirfd(dir);
@@ -99,6 +106,11 @@ void FreeRamdisk(DIR* dir, dev_t dev) {
     }
 }
 
+bool ForceNormalBoot(const std::string& cmdline, const std::string& bootconfig) {
+    return bootconfig.find("androidboot.force_normal_boot = \"1\"") != std::string::npos ||
+           cmdline.find("androidboot.force_normal_boot=1") != std::string::npos;
+}
+
 /*
 static void Copy(const char* src, const char* dst) {
     if (link(src, dst) == 0) {
@@ -109,6 +121,29 @@ static void Copy(const char* src, const char* dst) {
 }
 */
 
+std::string GetPageSizeSuffix() {
+    static const size_t page_size = sysconf(_SC_PAGE_SIZE);
+    if (page_size <= 4096) {
+        return "";
+    }
+    return android::base::StringPrintf("_%zuk", page_size / 1024);
+}
+
+constexpr bool EndsWith(const std::string_view str, const std::string_view suffix) {
+    return str.size() >= suffix.size() &&
+           0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
+}
+
+constexpr std::string_view GetPageSizeSuffix(std::string_view dirname) {
+    if (EndsWith(dirname, "_16k")) {
+        return "_16k";
+    }
+    if (EndsWith(dirname, "_64k")) {
+        return "_64k";
+    }
+    return "";
+}
+
 // From util.cpp
 
 static void InitAborter(const char* abort_message) {
@@ -118,6 +153,10 @@ static void InitAborter(const char* abort_message) {
 void InitKernelLogging(char** argv) {
     SetFatalRebootTarget();
     android::base::InitLogging(argv, &android::base::KernelLogger, InitAborter);
+}
+
+bool IsRecoveryMode() {
+    return access("/system/bin/recovery", F_OK) == 0;
 }
 
 // The kernel opens /dev/console and uses that fd for stdin/stdout/stderr if there is a serial
@@ -175,6 +214,126 @@ void ExecuteSecondStageInit(void) {
 }
 
 }  // namespace
+
+std::string GetModuleLoadList(BootMode boot_mode, const std::string& dir_path) {
+    std::string module_load_file;
+
+    switch (boot_mode) {
+        case BootMode::NORMAL_MODE:
+            module_load_file = "modules.load";
+            break;
+        case BootMode::RECOVERY_MODE:
+            module_load_file = "modules.load.recovery";
+            break;
+        case BootMode::CHARGER_MODE:
+            module_load_file = "modules.load.charger";
+            break;
+    }
+
+    if (module_load_file != "modules.load") {
+        struct stat fileStat {};
+        std::string load_path = dir_path + "/" + module_load_file;
+        // Fall back to modules.load if the other files aren't accessible
+        if (stat(load_path.c_str(), &fileStat)) {
+            module_load_file = "modules.load";
+        }
+    }
+
+    return module_load_file;
+}
+
+#define MODULE_BASE_DIR "/lib/modules"
+bool LoadKernelModules(BootMode boot_mode, bool strict, bool want_parallel,
+                       int& modules_loaded) {
+    struct utsname uts {};
+    if (uname(&uts)) {
+        LOG(FATAL) << "Failed to get kernel version.";
+    }
+    int major = 0, minor = 0;
+    if (sscanf(uts.release, "%d.%d", &major, &minor) != 2) {
+        LOG(FATAL) << "Failed to parse kernel version " << uts.release;
+    }
+
+    std::unique_ptr<DIR, decltype(&closedir)> base_dir(opendir(MODULE_BASE_DIR), closedir);
+    if (!base_dir) {
+        LOG(INFO) << "Unable to open /lib/modules, skipping module loading.";
+        return true;
+    }
+    dirent* entry = nullptr;
+    std::vector<std::string> module_dirs;
+    const auto page_size_suffix = GetPageSizeSuffix();
+    const std::string release_specific_module_dir = uts.release + page_size_suffix;
+    while ((entry = readdir(base_dir.get()))) {
+        if (entry->d_type != DT_DIR) {
+            continue;
+        }
+        if (entry->d_name == release_specific_module_dir) {
+            LOG(INFO) << "Release specific kernel module dir " << release_specific_module_dir
+                      << " found, loading modules from here with no fallbacks.";
+            module_dirs.clear();
+            module_dirs.emplace_back(entry->d_name);
+            break;
+        }
+        // Is a directory does not have page size suffix, it does not mean this directory is for 4K
+        // kernels. Certain 16K kernel builds put all modules in /lib/modules/`uname -r` without any
+        // suffix. Therefore, only ignore a directory if it has _16k/_64k suffix and the suffix does
+        // not match system page size.
+        const auto dir_page_size_suffix = GetPageSizeSuffix(entry->d_name);
+        if (!dir_page_size_suffix.empty() && dir_page_size_suffix != page_size_suffix) {
+            continue;
+        }
+        int dir_major = 0, dir_minor = 0;
+        if (sscanf(entry->d_name, "%d.%d", &dir_major, &dir_minor) != 2 || dir_major != major ||
+            dir_minor != minor) {
+            continue;
+        }
+        module_dirs.emplace_back(entry->d_name);
+    }
+
+    // Sort the directories so they are iterated over during module loading
+    // in a consistent order. Alphabetical sorting is fine here because the
+    // kernel version at the beginning of the directory name must match the
+    // current kernel version, so the sort only applies to a label that
+    // follows the kernel version, for example /lib/modules/5.4 vs.
+    // /lib/modules/5.4-gki.
+    std::sort(module_dirs.begin(), module_dirs.end());
+
+    for (const auto& module_dir : module_dirs) {
+        std::string dir_path = MODULE_BASE_DIR "/";
+        dir_path.append(module_dir);
+        Modprobe m({dir_path}, GetModuleLoadList(boot_mode, dir_path));
+        bool retval = m.LoadListedModules(strict);
+        modules_loaded = m.GetModuleCount();
+        if (modules_loaded > 0) {
+            LOG(INFO) << "Loaded " << modules_loaded << " modules from " << dir_path;
+            return retval;
+        }
+    }
+
+    Modprobe m({MODULE_BASE_DIR}, GetModuleLoadList(boot_mode, MODULE_BASE_DIR));
+    bool retval = (want_parallel) ? m.LoadModulesParallel(std::thread::hardware_concurrency())
+                                  : m.LoadListedModules(strict);
+    modules_loaded = m.GetModuleCount();
+    if (modules_loaded > 0) {
+        LOG(INFO) << "Loaded " << modules_loaded << " modules from " << MODULE_BASE_DIR;
+    }
+    return retval;
+}
+
+static bool IsChargerMode(const std::string& cmdline, const std::string& bootconfig) {
+    return bootconfig.find("androidboot.mode = \"charger\"") != std::string::npos ||
+            cmdline.find("androidboot.mode=charger") != std::string::npos;
+}
+
+static BootMode GetBootMode(const std::string& cmdline, const std::string& bootconfig)
+{
+    if (IsChargerMode(cmdline, bootconfig))
+        return BootMode::CHARGER_MODE;
+    else if (IsRecoveryMode() && !ForceNormalBoot(cmdline, bootconfig))
+        return BootMode::RECOVERY_MODE;
+
+    return BootMode::NORMAL_MODE;
+}
 
 int FirstStageMain(int argc, char** argv) {
     if (REBOOT_BOOTLOADER_ON_PANIC) {
@@ -276,6 +435,24 @@ int FirstStageMain(int argc, char** argv) {
     }
 
     auto want_console = ALLOW_FIRST_STAGE_CONSOLE ? FirstStageConsole(cmdline, bootconfig) : 0;
+    auto want_parallel =
+            bootconfig.find("androidboot.load_modules_parallel = \"true\"") != std::string::npos;
+
+    boot_clock::time_point module_start_time = boot_clock::now();
+    int module_count = 0;
+    BootMode boot_mode = GetBootMode(cmdline, bootconfig);
+    if (!LoadKernelModules(boot_mode, false,
+                           want_parallel, module_count)) {
+        LOG(ERROR) << "Failed to load kernel modules";
+    }
+    if (module_count > 0) {
+        auto module_elapse_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+                boot_clock::now() - module_start_time);
+        setenv(kEnvInitModuleDurationMs, std::to_string(module_elapse_time.count()).c_str(), 1);
+        LOG(INFO) << "Loaded " << module_count << " kernel modules took "
+                  << module_elapse_time.count() << " ms";
+    }
+
     if (want_console == FirstStageConsoleParam::CONSOLE_ON_FAILURE) {
         StartConsole(cmdline);
     }
