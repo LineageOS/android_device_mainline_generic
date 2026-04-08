@@ -47,6 +47,8 @@ TARGET_KERNEL_CONFIG_EXT := \
 TARGET_KERNEL_SOURCE ?= kernel/mainline/linux
 
 # Kernel modules
+BOARD_KERNEL_MODULES_LOAD_ALLOW_MISSING := true
+BOARD_VENDOR_RAMDISK_KERNEL_MODULES_LOAD := $(shell cat $(DEVICE_PATH)/configs/modprobe/modules.load.ramdisk)
 BOOT_KERNEL_MODULES_FINDER := $(DEVICE_PATH)/configs/kernel/boot_kernel_modules_finder.sh
 TARGET_AUTO_COLLECT_KERNEL_MODULE_DEPS := true
 
