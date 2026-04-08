@@ -43,6 +43,8 @@ TARGET_USERIMAGES_USE_EXT4 := true
 
 # Kernel
 ifeq ($(MAINLINE_GENERIC_USE_PRISTINE_KERNEL),true)
+TARGET_KERNEL_CONFIG_EXT := \
+    $(DEVICE_PATH)/configs/kernel/debian.config
 TARGET_KERNEL_SOURCE ?= kernel/mainline/linux
 else
 TARGET_KERNEL_SOURCE := kernel/virt/virtio
