@@ -43,7 +43,8 @@ TARGET_USERIMAGES_USE_EXT4 := true
 
 # Kernel
 TARGET_KERNEL_CONFIG_EXT := \
-    $(DEVICE_PATH)/configs/kernel/debian.config
+    $(DEVICE_PATH)/configs/kernel/debian.config \
+    $(DEVICE_PATH)/configs/kernel/fix-build.config
 TARGET_KERNEL_SOURCE ?= kernel/mainline/linux
 
 # Kernel modules
