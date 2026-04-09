@@ -119,15 +119,19 @@ namespace android {
 namespace init {
 
 void main_loop(const UeventListener& uevent_listener,
-               const std::vector<std::shared_ptr<UeventHandler>>& uevent_handlers) {
+               const std::vector<std::shared_ptr<UeventHandler>>& uevent_handlers,
+               const bool& first_run) {
     do {
-        uevent_listener.Poll([&uevent_handlers](const Uevent& uevent) {
+        uevent_listener.Poll([&uevent_handlers, &first_run](const Uevent& uevent) {
             for (auto& uevent_handler : uevent_handlers) {
                 uevent_handler->HandleUevent(uevent);
             }
+            if (first_run && MountHandler::CanQuitUeventd(false)) {
+                return ListenerAction::kStop;
+            }
             return ListenerAction::kContinue;
         }, true, 5s);
-    } while (!MountHandler::CanQuitUeventd());
+    } while (!MountHandler::CanQuitUeventd(true));
 }
 
 void parallel_main_loop(const UeventListener& uevent_listener,
@@ -199,7 +203,7 @@ int ueventd_main(const UeventdConfiguration& ueventd_configuration, bool first_r
     ColdBoot cold_boot(uevent_listener, uevent_handlers);
     cold_boot.Run();
 
-    if (first_run && MountHandler::CanQuitUeventd()) {
+    if (first_run && MountHandler::CanQuitUeventd(false)) {
         LOG(INFO) << "Exit ueventd";
         return EXIT_SUCCESS;
     }
@@ -227,7 +231,7 @@ int ueventd_main(const UeventdConfiguration& ueventd_configuration, bool first_r
         }
         parallel_main_loop(uevent_listener, uevent_handlers, num_threads);
     } else {
-        main_loop(uevent_listener, uevent_handlers);
+        main_loop(uevent_listener, uevent_handlers, first_run);
     }
 
     LOG(INFO) << "Exit ueventd main loop";

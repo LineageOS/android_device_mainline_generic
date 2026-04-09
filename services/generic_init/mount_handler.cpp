@@ -528,14 +528,18 @@ void OnBlockDeviceAdd(const android::init::Uevent& uevent, const std::string& de
 
 // TODO: Handle block device removal?
 
-bool CanQuitUeventd(void) {
+bool CanQuitUeventd(bool print_log) {
     bool ret = true;
     if (param_mount_system == MountSystemParam::STANDARD_PARTITIONS_WITH_PARTNAME ||
         param_mount_system == MountSystemParam::ANY_BLOCK_DEVICES_AS_PARTITION) {
         for (const auto& [part, bdev] : android_system_part_to_bdev_map) {
             if (bdev == nullptr) {
-                LOG(INFO) << __FUNCTION__ << ": Missing block device for system partition " << part;
-                ret = false;
+                if (print_log) {
+                    LOG(INFO) << __FUNCTION__ << ": Missing block device for system partition " << part;
+                    ret = false;
+                } else {
+                    return false;
+                }
             }
         }
     }
@@ -543,18 +547,30 @@ bool CanQuitUeventd(void) {
         for (const auto& [part, bdev] : android_userdata_part_to_bdev_map) {
             if (part == "cache" && !need_mount_cache) continue;
             if (bdev == nullptr) {
-                LOG(INFO) << __FUNCTION__ << ": Missing block device for userdata partition " << part;
-                ret = false;
+                if (print_log) {
+                    LOG(INFO) << __FUNCTION__ << ": Missing block device for userdata partition " << part;
+                    ret = false;
+                } else {
+                    return false;
+                }
             }
         }
     }
     if (need_android_dir && block_device_for_android_dir == nullptr) {
-        LOG(INFO) << __FUNCTION__ << ": Missing block device for android dir";
-        ret = false;
+        if (print_log) {
+            LOG(INFO) << __FUNCTION__ << ": Missing block device for android dir";
+            ret = false;
+        } else {
+            return false;
+        }
     }
     if (need_firmware_dir && block_device_for_firmware_dir == nullptr) {
-        LOG(INFO) << __FUNCTION__ << ": Missing block device for firmware dir";
-        ret = false;
+        if (print_log) {
+            LOG(INFO) << __FUNCTION__ << ": Missing block device for firmware dir";
+            ret = false;
+        } else {
+            return false;
+        }
     }
     return ret;
 }
