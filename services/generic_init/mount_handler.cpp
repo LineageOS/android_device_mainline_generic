@@ -741,14 +741,10 @@ void OnPostBlockDevices(void) {
         fstab.push_back(std::move(entry));
     }
 
-    if (need_android_dir && param_mount_system == MountSystemParam::IMAGES_COPY_TO_RAM &&
-        param_mount_userdata != MountUserdataParam::IMAGES &&
-        param_mount_userdata != MountUserdataParam::BIND_MOUNT_DIR) {
-        // Unmount block device for android dir if it's no longer used
-        // Allowing live boot users to eject the boot media afterwards
-        if (umount(kAndroidMountTarget.c_str()) == -1) {
-            PLOG(ERROR) << "Failed to umount " << kAndroidMountTarget;
-        }
+    // Unmount block device for android dir if it's no longer used
+    // Allowing live boot users to eject the boot media afterwards
+    if (umount(kAndroidMountTarget.c_str()) == 0) {
+        PLOG(INFO) << "umount " << kAndroidMountTarget << " successfully";
     }
 
     for (const auto& entry : fstab) {
