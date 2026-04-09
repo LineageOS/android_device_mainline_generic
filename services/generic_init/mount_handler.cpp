@@ -574,31 +574,6 @@ void OnPostBlockDevices(void) {
         android_dir_path = kAndroidMountTarget + "/" + bdinfo->have_android_dir;
     }
 
-    if (need_firmware_dir) {
-        std::shared_ptr<BlockDeviceInfo> bdinfo = block_device_for_firmware_dir;
-        if (bdinfo == block_device_for_android_dir) {
-            firmware_dir_path = kAndroidMountTarget + "/" + bdinfo->have_firmware_dir;
-        } else {
-            ret = mount(bdinfo->devpath.c_str(), kFirmwareMountTarget.c_str(), bdinfo->fs_type.c_str(), MS_RDONLY, kMountOpts);
-            if (ret) {
-                PLOG(FATAL) << "Unable to mount block device for firmware dir";
-            }
-            firmware_dir_path = kFirmwareMountTarget + "/" + bdinfo->have_firmware_dir;
-        }
-
-        FstabEntry entry = {
-            .blk_device = firmware_dir_path,
-            .mount_point = "/vendor/firmware",
-            .fs_type = "none",
-            .flags = MS_BIND,
-            .fs_mgr_flags = {
-                .no_fail = true,
-                .first_stage_mount = true
-            }
-        };
-        fstab.push_back(std::move(entry));
-    }
-
     if (param_mount_system == MountSystemParam::STANDARD_PARTITIONS_WITH_PARTNAME ||
         param_mount_system == MountSystemParam::ANY_BLOCK_DEVICES_AS_PARTITION) {
         for (const auto& [partition, bdinfo] : android_system_part_to_bdev_map) {
@@ -739,6 +714,31 @@ void OnPostBlockDevices(void) {
         for (const auto& entry : fstab_userdata_on_tmpfs) {
             fstab.push_back(std::move(entry));
         }
+    }
+
+    if (need_firmware_dir) {
+        std::shared_ptr<BlockDeviceInfo> bdinfo = block_device_for_firmware_dir;
+        if (bdinfo == block_device_for_android_dir) {
+            firmware_dir_path = kAndroidMountTarget + "/" + bdinfo->have_firmware_dir;
+        } else {
+            ret = mount(bdinfo->devpath.c_str(), kFirmwareMountTarget.c_str(), bdinfo->fs_type.c_str(), MS_RDONLY, kMountOpts);
+            if (ret) {
+                PLOG(FATAL) << "Unable to mount block device for firmware dir";
+            }
+            firmware_dir_path = kFirmwareMountTarget + "/" + bdinfo->have_firmware_dir;
+        }
+
+        FstabEntry entry = {
+            .blk_device = firmware_dir_path,
+            .mount_point = "/vendor/firmware",
+            .fs_type = "none",
+            .flags = MS_BIND,
+            .fs_mgr_flags = {
+                .no_fail = true,
+                .first_stage_mount = true
+            }
+        };
+        fstab.push_back(std::move(entry));
     }
 
     if (need_android_dir && param_mount_system == MountSystemParam::IMAGES_COPY_TO_RAM &&
