@@ -1,0 +1,6 @@
+service init_dev_config /vendor/bin/gpu_detect
+    override
+    oneshot
+    user root
+    group root graphics
+    file /dev/kmsg w

@@ -4,4 +4,7 @@
 //
 
 soong_namespace {
+    imports: [
+        "device/mainline/common",
+    ],
 }

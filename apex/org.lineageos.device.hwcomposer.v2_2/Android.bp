@@ -1,0 +1,25 @@
+//
+// SPDX-FileCopyrightText: The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+apex {
+    name: "org.lineageos.device.hwcomposer.v2_2",
+    manifest: "apex_manifest.json",
+    key: "com.android.hardware.key",
+    certificate: ":com.android.hardware.certificate",
+    file_contexts: "apex_file_contexts",
+    updatable: false,
+    vendor: true,
+
+    prebuilts: [
+        "org.lineageos.device.hwcomposer.v2_2.xml",
+    ],
+}
+
+prebuilt_etc {
+    name: "org.lineageos.device.hwcomposer.v2_2.xml",
+    src: "org.lineageos.device.hwcomposer.v2_2.xml",
+    sub_dir: "vintf",
+    installable: false,
+}

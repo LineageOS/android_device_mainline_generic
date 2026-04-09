@@ -1,0 +1,12 @@
+cc_binary {
+    name: "gpu_detect",
+    srcs: ["gpu_detect.cpp"],
+    shared_libs: [
+        "libbase",
+        "libcutils",
+        "libdrm",
+        "liblog",
+    ],
+    bootstrap: true,
+    vendor: true,
+}

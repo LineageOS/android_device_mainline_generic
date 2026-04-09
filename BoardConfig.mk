@@ -41,6 +41,30 @@ TARGET_USERIMAGES_SPARSE_EXT_DISABLED := true
 TARGET_USERIMAGES_USE_F2FS := true
 TARGET_USERIMAGES_USE_EXT4 := true
 
+# Graphics (Mesa)
+BOARD_MESA3D_BUILD_LIBGBM := true
+BOARD_MESA3D_GALLIUM_DRIVERS += \
+    crocus \
+    iris \
+    nouveau \
+    radeonsi \
+    r300 \
+    r600 \
+    svga \
+    virgl
+BOARD_MESA3D_VULKAN_DRIVERS += \
+    amd \
+    intel \
+    intel_hasvk \
+    nouveau \
+    virtio
+
+# Graphics allocator (minigbm)
+$(call soong_config_set,minigbm_upstream,platform,all)
+
+# Graphics composer (drmfb)
+$(call soong_config_set_bool,drmfb_composer,uses_minigbm,true)
+
 # Kernel
 TARGET_KERNEL_CONFIG_EXT := \
     $(DEVICE_PATH)/configs/kernel/debian.config \
@@ -80,9 +104,16 @@ TARGET_VENDOR_PROP += \
 BOARD_RAMDISK_USE_LZ4 := true
 
 # SELinux
+BOARD_VENDOR_SEPOLICY_DIRS += \
+    $(DEVICE_PATH)/sepolicy/vendor \
+    hardware/mainline/common/interfaces/graphics/composer/drmfb/sepolicy
+
 SYSTEM_EXT_PRIVATE_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy/private
 SYSTEM_EXT_PUBLIC_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy/public
 
 # VINTF
 DEVICE_MANIFEST_FILE := \
     $(DEVICE_PATH)/configs/vintf/manifest.xml
+
+ODM_MANIFEST_SKUS := minigbm_imapper5
+ODM_MANIFEST_MINIGBM_IMAPPER5_FILES := external/minigbm-upstream/cros_gralloc/mapper_stablec/mapper.minigbm_upstream.xml

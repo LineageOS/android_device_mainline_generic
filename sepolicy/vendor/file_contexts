@@ -1,0 +1,2 @@
+# Executables
+/vendor/bin/gpu_detect		u:object_r:vendor_gpu_detect_exec:s0

@@ -8,9 +8,11 @@ DEVICE_PATH := device/mainline/generic
 # Inherit from mainline/common
 TARGET_CAMERA_PROVIDER_HAL := external
 TARGET_ENABLE_LOGCAT_TO_SERIAL := true
+TARGET_GRAPHICS_ALLOCATOR_HAL := minigbm-upstream
+TARGET_GRAPHICS_COMPOSER_HAL := custom
+TARGET_MESA_DO_NOT_SET_AS_DEFAULT := true
 TARGET_SUPPORTS_SUSPEND := false
 TARGET_SUPPORTS_USB_ACCESSORY_MODE := false
-TARGET_USES_FRAMEBUFFER_DISPLAY := true
 TARGET_USES_TABLET_INPUT_AS_TOUCHSCREEN := true
 include device/mainline/common/optional/options.mk
 $(call inherit-product, device/mainline/common/mainline_common.mk)
@@ -21,6 +23,61 @@ TARGET_SCREEN_HEIGHT := 300
 
 # Dalvik heap
 $(call inherit-product, frameworks/native/build/tablet-10in-xhdpi-2048-dalvik-heap.mk)
+
+# Graphics
+PRODUCT_PACKAGES += \
+    amdgpu.ids \
+    gpu_detect
+
+# Graphics (Mesa)
+TARGET_MESA_ENABLE_SOFTWARE_RENDERER := true
+
+# Graphics allocator
+PRODUCT_PACKAGES += \
+    org.lineageos.device.gralloc.minigbm_upstream_nonapex \
+    org.lineageos.device.gralloc.v2_0
+
+PRODUCT_PACKAGES += \
+    android.hardware.graphics.allocator@2.0-impl \
+    android.hardware.graphics.allocator@2.0-service \
+    android.hardware.graphics.mapper@2.0-impl-2.1
+
+PRODUCT_PACKAGES += \
+    gralloc.gbm
+
+TARGET_MINIGBM_UPSTREAM_ENABLE_GBM_MESA_DRIVER := true
+TARGET_MINIGBM_UPSTREAM_INSIDE_APEX := false
+
+$(call soong_config_set_bool,minigbm_upstream,include_vintf_fragments,false)
+
+# Graphics composer
+PRODUCT_PACKAGES += \
+    org.lineageos.device.hwcomposer.drm \
+    org.lineageos.device.hwcomposer.drm.rc \
+    org.lineageos.device.hwcomposer.drm_apex \
+    org.lineageos.device.hwcomposer.drmfb \
+    org.lineageos.device.hwcomposer.v2_2 \
+    org.lineageos.device.hwcomposer.v2_4
+
+PRODUCT_PACKAGES += \
+    android.hardware.graphics.composer@2.2-service \
+    android.hardware.graphics.composer@2.4-service
+
+PRODUCT_PACKAGES += \
+    android.hardware.composer.hwc3-service.drm_upstream \
+    android.hardware.graphics.composer@2.1-service.drmfb
+
+$(call soong_config_set_bool,drm_hwcomposer_upstream,include_init_rc,false)
+$(call soong_config_set_bool,drm_hwcomposer_upstream,include_vintf_fragments,false)
+$(call soong_config_set_bool,drmfb_composer,include_vintf_fragments,false)
+
+# Graphics Vulkan
+PRODUCT_PACKAGES += \
+    org.lineageos.device.graphics.vulkan.no_apex \
+    org.lineageos.device.graphics.vulkan.swiftshader
+
+## TODO(b/65201432): Swiftshader needs to create executable memory.
+PRODUCT_REQUIRES_INSECURE_EXECMEM_FOR_SWIFTSHADER := true
 
 # HIDL
 PRODUCT_PACKAGES += \
@@ -40,7 +97,8 @@ PRODUCT_PACKAGES += \
 
 PRODUCT_PACKAGES += \
     device_generic_settings.rc \
-    device_generic_settings.sh
+    device_generic_settings.sh \
+    init_dev_config_override.rc
 
 PRODUCT_PACKAGES += \
     use_memfd.rc \
@@ -59,6 +117,11 @@ PRODUCT_USE_DYNAMIC_PARTITION_SIZE := true
 
 # Kernel
 PRODUCT_OTA_ENFORCE_VINTF_KERNEL_REQUIREMENTS := false
+
+# Kernel modules
+PRODUCT_COPY_FILES += \
+    $(DEVICE_PATH)/configs/modprobe/modules.options:$(TARGET_COPY_OUT_RAMDISK)/lib/modules/modules.options \
+    $(DEVICE_PATH)/configs/modprobe/modules.options:$(TARGET_COPY_OUT_VENDOR)/lib/modules/modules.options
 
 # Overlays
 DEVICE_PACKAGE_OVERLAYS += \

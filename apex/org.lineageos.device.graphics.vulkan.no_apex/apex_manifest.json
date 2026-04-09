@@ -1,0 +1,5 @@
+{
+    "name": "org.lineageos.device.graphics.vulkan",
+    "bootstrap": true,
+    "version": 1
+}

@@ -1,0 +1,5 @@
+{
+    "name": "org.lineageos.device.gralloc",
+    "bootstrap": true,
+    "version": 1
+}
