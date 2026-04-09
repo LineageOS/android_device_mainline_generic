@@ -576,11 +576,15 @@ void OnPostBlockDevices(void) {
 
     if (need_firmware_dir) {
         std::shared_ptr<BlockDeviceInfo> bdinfo = block_device_for_firmware_dir;
-        ret = mount(bdinfo->devpath.c_str(), kFirmwareMountTarget.c_str(), bdinfo->fs_type.c_str(), MS_RDONLY, kMountOpts);
-        if (ret) {
-            PLOG(FATAL) << "Unable to mount block device for firmware dir";
+        if (bdinfo == block_device_for_android_dir) {
+            firmware_dir_path = kAndroidMountTarget + "/" + bdinfo->have_firmware_dir;
+        } else {
+            ret = mount(bdinfo->devpath.c_str(), kFirmwareMountTarget.c_str(), bdinfo->fs_type.c_str(), MS_RDONLY, kMountOpts);
+            if (ret) {
+                PLOG(FATAL) << "Unable to mount block device for firmware dir";
+            }
+            firmware_dir_path = kFirmwareMountTarget + "/" + bdinfo->have_firmware_dir;
         }
-        firmware_dir_path = kFirmwareMountTarget + "/" + bdinfo->have_firmware_dir;
 
         FstabEntry entry = {
             .blk_device = firmware_dir_path,
