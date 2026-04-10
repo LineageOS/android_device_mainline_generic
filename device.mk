@@ -92,6 +92,7 @@ PRODUCT_PACKAGES += \
 
 PRODUCT_PACKAGES += \
     fstab.generic \
+    fstab.generic_init.addon.basic \
     init.generic.rc \
     ueventd.generic.rc
 

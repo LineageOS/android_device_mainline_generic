@@ -6,15 +6,15 @@
 prebuilt_etc {
     name: "device_generic_settings.rc",
     src: "device_generic_settings.rc",
-    sub_dir: "init",
-    product_specific: true,
+    sub_dir: "overlay-product-etc-init",
+    vendor: true,
 }
 
 prebuilt_etc {
     name: "init_dev_config_override.rc",
     src: "init_dev_config_override.rc",
-    sub_dir: "init",
-    product_specific: true,
+    sub_dir: "overlay-product-etc-init",
+    vendor: true,
 }
 
 prebuilt_etc {

@@ -8,3 +8,9 @@ prebuilt_etc {
     src: "fstab.generic",
     vendor: true,
 }
+
+prebuilt_etc {
+    name: "fstab.generic_init.addon.basic",
+    src: "fstab.generic_init.addon.basic",
+    ramdisk: true,
+}
