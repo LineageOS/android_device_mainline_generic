@@ -1,0 +1,2 @@
+#<src>				<mnt_point>				<type>		<mnt_flags and options>								<fs_mgr_flags>
+overlay				/system/product/etc/init		overlay		ro,lowerdir=/vendor/etc/overlay-product-etc-init:/product/etc/init		defaults

@@ -1,2 +1,5 @@
+# Configuration files
+/vendor/etc/overlay-product-etc-init(/.*)?		u:object_r:system_file:s0
+
 # Executables
 /vendor/bin/gpu_detect		u:object_r:vendor_gpu_detect_exec:s0
