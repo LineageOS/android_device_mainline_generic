@@ -6,6 +6,7 @@ fat.ko
 isofs.ko
 msdos.ko
 ntfs3.ko
+overlay.ko
 squashfs.ko
 udf.ko
 vfat.ko
