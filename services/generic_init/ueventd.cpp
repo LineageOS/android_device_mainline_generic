@@ -191,7 +191,13 @@ int ueventd_main(const UeventdConfiguration& ueventd_configuration, bool first_r
     });
 
     if (ueventd_configuration.enable_modalias_handling) {
-        std::vector<std::string> base_paths = {"/lib/modules"};
+        std::vector<std::string> base_paths;
+        if (first_run) {
+            base_paths.push_back("/lib/modules");
+        } else {
+            base_paths.push_back("/system/lib/modules");
+            base_paths.push_back("/vendor/lib/modules");
+        }
         uevent_handlers.emplace_back(std::make_shared<ModaliasHandler>(base_paths));
     }
     uevent_handlers.emplace_back(std::move(device_handler));
