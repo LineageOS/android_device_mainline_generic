@@ -40,9 +40,11 @@ using android::base::StartsWithIgnoreCase;
 using android::base::EndsWithIgnoreCase;
 using android::base::Join;
 using android::base::ReadFileToString;
+using android::base::Split;
 using android::base::StartsWith;
 using android::base::unique_fd;
 using android::dm::LoopControl;
+using android::fs_mgr::ReadFstabFromFile;
 using std::chrono_literals::operator""s;
 
 namespace {
@@ -83,6 +85,8 @@ bool need_mount_cache = false;
 
 // TODO: `discard` flag for RW filesystems
 constexpr char kMountOpts[] = "";
+
+Fstab addon_fstab;
 
 std::shared_ptr<BlockDeviceInfo> block_device_for_android_dir = nullptr;
 std::shared_ptr<BlockDeviceInfo> block_device_for_firmware_dir = nullptr;
@@ -131,6 +135,7 @@ std::map<std::string, std::shared_ptr<BlockDeviceInfo>> android_userdata_part_to
     {"userdata", nullptr},
 };
 
+constexpr char kAddonFstabSuffixParam[] = "addon_fstab_suffix";
 constexpr char kAndroidDirParam[] = "android_dir";
 constexpr char kMountFirmwareParam[] = "mount_firmware";
 constexpr char kMountSystemParam[] = "mount_system";
@@ -168,6 +173,7 @@ bool param_mount_firmware = false;
 MountSystemParam param_mount_system = MountSystemParam::STANDARD_PARTITIONS_WITH_PARTNAME;
 MountUserdataParam param_mount_userdata = MountUserdataParam::STANDARD_PARTITIONS_WITH_PARTNAME;
 
+const std::string kAddonFstabPrefix = "fstab.generic_init.addon.";
 const std::string kAndroidMountTarget = "/mnt/android";
 const std::string kFirmwareMountTarget = "/mnt/firmware";
 const std::string kTmpfsImgDir = "/mnt/img";
@@ -219,6 +225,22 @@ void ParseConfig(void) {
     bool ret;
     std::string tmp;
 
+    if (fs_mgr_get_boot_config(kAddonFstabSuffixParam, &tmp)) {
+        std::vector<std::string> config_addon_fstab_suffix = Split(tmp, ",");
+        for (const auto& fstab_suffix : config_addon_fstab_suffix) {
+            const std::string addon_fstab_name = kAddonFstabPrefix + fstab_suffix;
+            Fstab tmp_fstab;
+            if (!ReadFstabFromFile("/system/etc/" + addon_fstab_name, &tmp_fstab)) {
+                LOG(ERROR) << "Failed to load addon fstab " << addon_fstab_name;
+                continue;
+            }
+
+            LOG(INFO) << "Importing addon fstab " << addon_fstab_name;
+            for (auto& entry : tmp_fstab) {
+                addon_fstab.push_back(std::move(entry));
+            }
+        }
+    }
     fs_mgr_get_boot_config(kAndroidDirParam, &config_android_dir);
 
     ret = fs_mgr_get_boot_config(kMountFirmwareParam, &tmp);
@@ -761,6 +783,12 @@ void OnPostBlockDevices(void) {
     // Allowing live boot users to eject the boot media afterwards
     if (umount(kAndroidMountTarget.c_str()) == 0) {
         PLOG(INFO) << "umount " << kAndroidMountTarget << " successfully";
+    }
+
+    if (!addon_fstab.empty()) {
+        for (auto& entry : addon_fstab) {
+            fstab.push_back(std::move(entry));
+        }
     }
 
     for (const auto& entry : fstab) {
