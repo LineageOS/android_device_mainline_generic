@@ -87,6 +87,7 @@ fat
 isofs
 msdos
 ntfs3
+overlay
 squashfs
 udf
 vfat"
