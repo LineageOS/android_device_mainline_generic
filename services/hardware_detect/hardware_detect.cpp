@@ -12,7 +12,7 @@
 #include <string>
 #include <unordered_map>
 
-#define LOG_TAG "gpu_detect"
+#define LOG_TAG "hardware_detect"
 #include <android-base/file.h>
 #include <android-base/logging.h>
 #include <android-base/properties.h>
@@ -42,6 +42,7 @@ constexpr int kGlesVersion32 = 196610;
 constexpr char kCtlStopProp[] = "ctl.stop";
 
 constexpr char kGlesVersionProp[] = "ro.opengles.version";
+constexpr char kHwAudioPrimaryProp[] = "ro.hardware.audio.primary";
 constexpr char kHwEglProp[] = "ro.hardware.egl";
 constexpr char kHwGrallocProp[] = "ro.hardware.gralloc";
 constexpr char kHwHwcProp[] = "ro.hardware.hwcomposer";
@@ -73,6 +74,15 @@ const std::set<std::string> kMustUseFbDisplayGpus = {};
 struct HalApex {
     std::string name;
     std::list<std::string> init_rc_services;
+};
+
+enum class HwAudioPrimary {
+    Unset,
+    Tinyhal,
+};
+
+const std::unordered_map<HwAudioPrimary, std::string> kHwAudioPrimaryMap = {
+        {HwAudioPrimary::Tinyhal, "tinyhal"},
 };
 
 enum class HwEgl {
@@ -183,6 +193,7 @@ const std::unordered_map<MinigbmGenericBackend, std::string> kMinigbmGenericBack
 };
 
 int gGlesVersion = kGlesVersion20;
+HwAudioPrimary gHwAudioPrimary = HwAudioPrimary::Unset;
 HwEgl gHwEgl = HwEgl::Unset;
 HwGralloc gHwGralloc = HwGralloc::Unset;
 HwHwc gHwHwc = HwHwc::Unset;
@@ -195,6 +206,7 @@ android_pixel_format_t gSfNativeWindowBuffersFormat = HAL_PIXEL_FORMAT_RGBA_8888
 
 const std::unordered_map<std::string, int*> kBootOverridesProp = {
         {"gles_version", &gGlesVersion},
+        {"hw_audio_primary", reinterpret_cast<int*>(&gHwAudioPrimary)},
         {"hw_egl", reinterpret_cast<int*>(&gHwEgl)},
         {"hw_gralloc", reinterpret_cast<int*>(&gHwGralloc)},
         {"hw_hwc", reinterpret_cast<int*>(&gHwHwc)},
@@ -223,6 +235,14 @@ bool ApplySelections(void) {
 
     bool ret = true;
     const std::string* strp;
+
+    if (gHwAudioPrimary != HwAudioPrimary::Unset) {
+        strp = &kHwAudioPrimaryMap.at(gHwAudioPrimary);
+        LOG(INFO) << "Set Audio primary module to " << *strp;
+        ret &= SetProperty(kHwAudioPrimaryProp, *strp);
+    } else {
+        LOG(WARNING) << "Audio primary module is unset";
+    }
 
     if (gSfNativeWindowBuffersFormat != HAL_PIXEL_FORMAT_RGBA_8888) {
         LOG(INFO) << "Set surfaceflinger native window buffers format to "
@@ -535,6 +555,11 @@ void OnDetectVmwgfxGpu(void) {
 
 int main(int, char* argv[]) {
     InitLogging(argv, &KernelLogger);
+
+    if (access("/dev/snd/pcmC0D0p", F_OK) == 0) {
+        LOG(INFO) << "Sound card 0 device 0 playback is present, enable audio output";
+        gHwAudioPrimary = HwAudioPrimary::Tinyhal;
+    }
 
     if (IsForcedFramebufferDisplay()) {
         LOG(INFO) << "Forced using framebuffer display";
