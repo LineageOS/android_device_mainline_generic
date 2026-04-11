@@ -83,8 +83,8 @@ bool need_android_dir = false;
 bool need_firmware_dir = false;
 bool need_mount_cache = false;
 
-// TODO: `discard` flag for RW filesystems
-constexpr char kMountOpts[] = "";
+constexpr char kMountOptsRo[] = "";
+constexpr char kMountOptsRw[] = "discard";
 
 Fstab addon_fstab;
 
@@ -296,13 +296,14 @@ std::string DetermineAndroidPartitionFromBuildProp(const std::string& path) {
 }
 
 std::string TryMountAndReturnFsType(const std::string& devpath, unsigned long mountflags) {
+    bool ro = mountflags & MS_RDONLY;
     int ret, save_errno;
     const std::list<std::string> try_mount_fs_types = {
         "ext4", "f2fs", "erofs", "squashfs", "vfat", "ntfs", "iso9660", "udf"
     };
     for (const auto& try_fs_type : try_mount_fs_types) {
         errno = 0;
-        ret = mount(devpath.c_str(), kTryMountTarget.c_str(), try_fs_type.c_str(), mountflags, kMountOpts);
+        ret = mount(devpath.c_str(), kTryMountTarget.c_str(), try_fs_type.c_str(), mountflags, ro ? kMountOptsRo : kMountOptsRw);
         save_errno = errno;
         if (ret && (save_errno == EINVAL || save_errno == ENODEV)) continue;
         if (ret) {
@@ -605,7 +606,7 @@ void OnPostBlockDevices(void) {
 
     if (need_android_dir) {
         std::shared_ptr<BlockDeviceInfo> bdinfo = block_device_for_android_dir;
-        ret = mount(bdinfo->devpath.c_str(), kAndroidMountTarget.c_str(), bdinfo->fs_type.c_str(), bdinfo->rw ? 0 : MS_RDONLY, kMountOpts);
+        ret = mount(bdinfo->devpath.c_str(), kAndroidMountTarget.c_str(), bdinfo->fs_type.c_str(), bdinfo->rw ? 0 : MS_RDONLY, bdinfo->rw ? kMountOptsRw : kMountOptsRo);
         if (ret) {
             PLOG(FATAL) << "Unable to mount block device for android dir";
         }
@@ -759,7 +760,7 @@ void OnPostBlockDevices(void) {
         if (bdinfo == block_device_for_android_dir) {
             firmware_dir_path = kAndroidMountTarget + "/" + bdinfo->have_firmware_dir;
         } else {
-            ret = mount(bdinfo->devpath.c_str(), kFirmwareMountTarget.c_str(), bdinfo->fs_type.c_str(), MS_RDONLY, kMountOpts);
+            ret = mount(bdinfo->devpath.c_str(), kFirmwareMountTarget.c_str(), bdinfo->fs_type.c_str(), MS_RDONLY, kMountOptsRo);
             if (ret) {
                 PLOG(FATAL) << "Unable to mount block device for firmware dir";
             }
