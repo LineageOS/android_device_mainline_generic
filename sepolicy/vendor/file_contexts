@@ -2,4 +2,4 @@
 /vendor/etc/overlay-product-etc-init(/.*)?		u:object_r:system_file:s0
 
 # Executables
-/vendor/bin/gpu_detect		u:object_r:vendor_gpu_detect_exec:s0
+/vendor/bin/hardware_detect		u:object_r:vendor_hardware_detect_exec:s0

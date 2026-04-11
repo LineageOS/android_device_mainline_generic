@@ -1,6 +1,6 @@
-service init_dev_config /vendor/bin/gpu_detect
+service init_dev_config /vendor/bin/hardware_detect
     override
     oneshot
     user root
-    group root graphics
+    group root audio graphics
     file /dev/kmsg w

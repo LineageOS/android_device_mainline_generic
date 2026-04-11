@@ -1,0 +1,116 @@
+<audiohal>
+    <mixer card="0">
+        <init>
+            <ctl name="PCM Switch" val="1"/>
+
+            <ctl name="PCM Volume" val="100%"/>
+            <ctl name="PCM Capture Volume" val="100%"/>
+            <ctl name="PCM Playback Volume" val="100%"/>
+
+            <ctl name="Master Playback Switch" val="1"/>
+            <ctl name="Master Playback Volume" val="100%"/>
+
+            <ctl name="Headphone Playback Volume" val="100%"/>
+            <ctl name="Headset Playback Volume" val="100%"/>
+            <ctl name="Speaker Playback Volume" val="100%"/>
+
+            <ctl name="Capture Volume" val="100%"/>
+            <ctl name="Mic Capture Volume" val="100%"/>
+            <ctl name="Internal Mic Capture Volume" val="100%"/>
+            <ctl name="Rear Mic Capture Volume" val="100%"/>
+            <ctl name="Front Mic Capture Volume" val="100%"/>
+            <ctl name="Headphone Mic Capture Volume" val="100%"/>
+            <ctl name="Headset Mic Capture Volume" val="100%"/>
+        </init>
+    </mixer>
+    <device name="headphone">
+        <path name="on">
+            <ctl name="Headphone Playback Switch" val="1"/>
+        </path>
+        <path name="off">
+            <ctl name="Headphone Playback Switch" val="0"/>
+        </path>
+        <path name="pcm_on">
+            <ctl name="PCM Playback Switch" val="1"/>
+        </path>
+        <path name="pcm_off">
+            <ctl name="PCM Playback Switch" val="0"/>
+        </path>
+    </device>
+    <device name="headset">
+        <path name="on">
+            <ctl name="Headset Playback Switch" val="1"/>
+        </path>
+        <path name="off">
+            <ctl name="Headset Playback Switch" val="0"/>
+        </path>
+        <path name="pcm_on">
+            <ctl name="PCM Playback Switch" val="1"/>
+        </path>
+        <path name="pcm_off">
+            <ctl name="PCM Playback Switch" val="0"/>
+        </path>
+    </device>
+    <device name="headset_in">
+        <path name="on">
+            <ctl name="Capture Switch" val="1"/>
+            <ctl name="Front Mic Capture Switch" val="1"/>
+            <ctl name="Headphone Mic Capture Switch" val="1"/>
+            <ctl name="Headset Mic Capture Switch" val="1"/>
+        </path>
+        <path name="off">
+            <ctl name="Capture Switch" val="0"/>
+            <ctl name="Front Mic Capture Switch" val="0"/>
+            <ctl name="Headphone Mic Capture Switch" val="0"/>
+            <ctl name="Headset Mic Capture Switch" val="0"/>
+        </path>
+        <path name="pcm_on">
+            <ctl name="PCM Capture Switch" val="1"/>
+        </path>
+        <path name="pcm_off">
+            <ctl name="PCM Capture Switch" val="0"/>
+        </path>
+    </device>
+    <device name="mic">
+        <path name="on">
+            <ctl name="Capture Switch" val="1"/>
+            <ctl name="Mic Capture Switch" val="1"/>
+            <ctl name="Internal Mic Capture Switch" val="1"/>
+            <ctl name="Rear Mic Capture Switch" val="1"/>
+        </path>
+        <path name="off">
+            <ctl name="Capture Switch" val="0"/>
+            <ctl name="Mic Capture Switch" val="0"/>
+            <ctl name="Internal Mic Capture Switch" val="0"/>
+            <ctl name="Rear Mic Capture Switch" val="0"/>
+        </path>
+        <path name="pcm_on">
+            <ctl name="PCM Capture Switch" val="1"/>
+        </path>
+        <path name="pcm_off">
+            <ctl name="PCM Capture Switch" val="0"/>
+        </path>
+    </device>
+    <device name="speaker">
+        <path name="on">
+            <ctl name="Speaker Playback Switch" val="1"/>
+        </path>
+        <path name="off">
+            <ctl name="Speaker Playback Switch" val="0"/>
+        </path>
+        <path name="pcm_on">
+            <ctl name="PCM Playback Switch" val="1"/>
+        </path>
+        <path name="pcm_off">
+            <ctl name="PCM Playback Switch" val="0"/>
+        </path>
+    </device>
+    <stream type="pcm" dir="in" card="0" device="0">
+        <enable path="pcm_on"/>
+        <disable path="pcm_off"/>
+    </stream>
+    <stream type="pcm" dir="out" card="0" device="0">
+        <enable path="pcm_on"/>
+        <disable path="pcm_off"/>
+    </stream>
+</audiohal>

@@ -11,6 +11,9 @@ include device/mainline/common/BoardConfigMainlineCommon.mk
 # A/B
 AB_OTA_UPDATER := false
 
+# Audio
+$(call soong_config_set_bool,tinyhal,libaudiohalcm_continue_on_ctl_open_error,true)
+
 # Boot manager
 TARGET_BOOT_MANAGER := grub
 TARGET_GRUB_LIVE_CONFIGS := $(DEVICE_PATH)/configs/bootmgr/grub-live.cfg
