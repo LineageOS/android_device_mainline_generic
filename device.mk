@@ -6,6 +6,8 @@
 DEVICE_PATH := device/mainline/generic
 
 # Inherit from mainline/common
+TARGET_AUDIO_HAL := tinyhal
+TARGET_AUDIO_POLICY := custom
 TARGET_CAMERA_PROVIDER_HAL := external
 TARGET_ENABLE_LOGCAT_TO_SERIAL := true
 TARGET_GRAPHICS_ALLOCATOR_HAL := minigbm-upstream
@@ -17,6 +19,17 @@ TARGET_USES_TABLET_INPUT_AS_TOUCHSCREEN := true
 include device/mainline/common/optional/options.mk
 $(call inherit-product, device/mainline/common/mainline_common.mk)
 
+# Audio
+PRODUCT_COPY_FILES += \
+    $(DEVICE_PATH)/configs/audio/primary_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/primary_audio_policy_configuration.xml \
+    device/google/cuttlefish/shared/config/audio/policy/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml \
+    frameworks/av/services/audiopolicy/config/audio_policy_volumes.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_volumes.xml \
+    frameworks/av/services/audiopolicy/config/bluetooth_with_le_audio_policy_configuration_7_0.xml:$(TARGET_COPY_OUT_VENDOR)/etc/bluetooth_with_le_audio_policy_configuration_7_0.xml \
+    frameworks/av/services/audiopolicy/config/default_volume_tables.xml:$(TARGET_COPY_OUT_VENDOR)/etc/default_volume_tables.xml \
+    frameworks/av/services/audiopolicy/config/r_submix_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/r_submix_audio_policy_configuration.xml
+
+TARGET_TINYHAL_DO_NOT_SET_AS_DEFAULT := true
+
 # Bootanimation
 TARGET_SCREEN_WIDTH := 300
 TARGET_SCREEN_HEIGHT := 300
@@ -26,8 +39,7 @@ $(call inherit-product, frameworks/native/build/tablet-10in-xhdpi-2048-dalvik-he
 
 # Graphics
 PRODUCT_PACKAGES += \
-    amdgpu.ids \
-    gpu_detect
+    amdgpu.ids
 
 # Graphics (Mesa)
 TARGET_MESA_ENABLE_SOFTWARE_RENDERER := true
@@ -104,6 +116,9 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     use_memfd.rc \
     zram.rc
+
+PRODUCT_PACKAGES += \
+    hardware_detect
 
 $(call soong_config_set,mainline_common_libinit,set_properties_from,dmi_id)
 

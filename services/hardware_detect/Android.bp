@@ -1,6 +1,6 @@
 cc_binary {
-    name: "gpu_detect",
-    srcs: ["gpu_detect.cpp"],
+    name: "hardware_detect",
+    srcs: ["hardware_detect.cpp"],
     shared_libs: [
         "libbase",
         "libcutils",
