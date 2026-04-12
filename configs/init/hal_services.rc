@@ -1,3 +1,5 @@
+# Must remove `interface` definition from every of such services, otherwise the selection logic is useless
+
 service vendor.hwcomposer-3.drm_upstream /vendor/bin/hw/android.hardware.composer.hwc3-service.drm_upstream
     class hal animation
     user system

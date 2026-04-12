@@ -48,8 +48,10 @@ constexpr char kHwGrallocProp[] = "ro.hardware.gralloc";
 constexpr char kHwHwcProp[] = "ro.hardware.hwcomposer";
 constexpr char kHwVulkanProp[] = "ro.hardware.vulkan";
 
+// TODO: deprecate
 constexpr char kGrallocApexProp[] = "ro.boot.vendor.apex.org.lineageos.device.gralloc";
 constexpr char kHwcApexProp[] = "ro.boot.vendor.apex.org.lineageos.device.hwcomposer";
+
 constexpr char kUsbGadgetApexProp[] = "ro.boot.vendor.apex.com.android.hardware.usb.gadget";
 constexpr char kVulkanApexProp[] = "ro.boot.vendor.apex.org.lineageos.device.graphics.vulkan";
 
@@ -74,10 +76,36 @@ const std::string kDmiIdPath = "/sys/devices/virtual/dmi/id/";
 const std::set<std::string> kDrmSysfbNames = {"efidrm", "simpledrm", "vesadrm"};
 const std::set<std::string> kMustUseFbDisplayGpus = {};
 
+// TODO: deprecate
 struct HalApex {
     std::string name;
     std::list<std::string> init_rc_services;
 };
+
+struct VintfEntry {
+    std::string format;
+    std::string name;
+    std::string version;
+    std::list<std::string> fqnames;
+    std::list<std::string> instances;
+}
+
+struct HalService {
+    std::string name;
+
+    std::string apex_base_name;
+    std::string apex_full_name;
+
+    std::list<std::string> init_rc_services;
+
+    // Write vintf entries by this?
+    std::list<VintfEntry> vintf_entries;
+    // Or copy vintf fragment from somewhere?
+    std::list<std::string> vintf_fragments;
+}
+
+// apex_base_name, apex_full_name
+std::unordered_map<std::string, std::string> ApexSelections;
 
 enum class HwAudioPrimary {
     Unset,
@@ -244,6 +272,17 @@ void ProcessBootOverrides() {
             *pvar = new_value;
         }
     }
+}
+
+// TODO: implement
+bool MountOverlayfsOnVendor(void) {
+}
+bool EnableHalService(const HalService& hal_service, bool enable) {
+    // enable flow:
+    // - write vintf fragment
+    //
+    // disable flow:
+    // - stop its init rc services
 }
 
 bool ApplySelections(void) {

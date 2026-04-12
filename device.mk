@@ -45,10 +45,6 @@ TARGET_MESA_ENABLE_SOFTWARE_RENDERER := true
 
 # Graphics allocator
 PRODUCT_PACKAGES += \
-    org.lineageos.device.gralloc.minigbm_upstream_nonapex \
-    org.lineageos.device.gralloc.v2_0
-
-PRODUCT_PACKAGES += \
     android.hardware.graphics.allocator@2.0-impl \
     android.hardware.graphics.allocator@2.0-service \
     android.hardware.graphics.mapper@2.0-impl-2.1
@@ -62,14 +58,6 @@ TARGET_MINIGBM_UPSTREAM_INSIDE_APEX := false
 $(call soong_config_set_bool,minigbm_upstream,include_vintf_fragments,false)
 
 # Graphics composer
-PRODUCT_PACKAGES += \
-    org.lineageos.device.hwcomposer.drm \
-    org.lineageos.device.hwcomposer.drm.rc \
-    org.lineageos.device.hwcomposer.drm_apex \
-    org.lineageos.device.hwcomposer.drmfb \
-    org.lineageos.device.hwcomposer.v2_2 \
-    org.lineageos.device.hwcomposer.v2_4
-
 PRODUCT_PACKAGES += \
     android.hardware.graphics.composer@2.2-service \
     android.hardware.graphics.composer@2.4-service
@@ -110,6 +98,7 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     device_generic_settings.rc \
     device_generic_settings.sh \
+    hal_services.rc \
     init_dev_config_override.rc
 
 PRODUCT_PACKAGES += \
