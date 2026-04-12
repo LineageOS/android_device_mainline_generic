@@ -1,0 +1,5 @@
+{
+    "name": "com.android.hardware.usb.gadget",
+    "bootstrap": true,
+    "version": 1
+}

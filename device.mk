@@ -14,7 +14,6 @@ TARGET_GRAPHICS_ALLOCATOR_HAL := minigbm-upstream
 TARGET_GRAPHICS_COMPOSER_HAL := custom
 TARGET_MESA_DO_NOT_SET_AS_DEFAULT := true
 TARGET_SUPPORTS_SUSPEND := false
-TARGET_SUPPORTS_USB_ACCESSORY_MODE := false
 TARGET_USES_TABLET_INPUT_AS_TOUCHSCREEN := true
 include device/mainline/common/optional/options.mk
 $(call inherit-product, device/mainline/common/mainline_common.mk)
@@ -160,6 +159,10 @@ PRODUCT_SHIPPING_API_LEVEL := 33
 PRODUCT_SOONG_NAMESPACES += \
     $(DEVICE_PATH) \
     kernel/mainline/configs
+
+# USB
+PRODUCT_PACKAGES += \
+    com.android.hardware.usb.gadget.none
 
 # Utilities
 PRODUCT_COPY_FILES += \
