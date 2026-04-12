@@ -20,6 +20,9 @@ namespace MountHelpers {
 
 using namespace ::android::fs_mgr;
 
+bool TryAccessDir(const std::string& path);
+bool TryAccessFile(const std::string& path);
+
 bool MountPartition(Fstab& fstab_, const Fstab::iterator& begin,
                     bool erase_same_mounts, Fstab::iterator* end = nullptr);
 
