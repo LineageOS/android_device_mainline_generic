@@ -1,0 +1,24 @@
+//
+// SPDX-FileCopyrightText: The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+apex {
+    name: "com.android.hardware.usb.gadget.none",
+    manifest: "apex_manifest.json",
+    key: "com.android.hardware.key",
+    certificate: ":com.android.hardware.certificate",
+    file_contexts: "apex_file_contexts",
+    updatable: false,
+    vendor: true,
+
+    prebuilts: [
+        "com.android.hardware.usb.gadget.none.rc",
+    ],
+}
+
+prebuilt_etc {
+    name: "com.android.hardware.usb.gadget.none.rc",
+    src: "com.android.hardware.usb.gadget.none.rc",
+    installable: false,
+}
