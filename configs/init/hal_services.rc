@@ -1,0 +1,17 @@
+# Must remove `interface` definition from every of such services, otherwise the selection logic is effectively useless
+
+service vendor.gralloc-2-0 /vendor/bin/hw/android.hardware.graphics.allocator@2.0-service
+    override
+    class hal animation
+    user system
+    group graphics drmrpc
+    capabilities SYS_NICE
+    onrestart restart surfaceflinger
+
+service vendor.hwcomposer-3.drm_upstream /vendor/bin/hw/android.hardware.composer.hwc3-service.drm_upstream
+    class hal animation
+    user system
+    group graphics drmrpc
+    capabilities SYS_NICE
+    onrestart restart surfaceflinger
+    task_profiles ServiceCapacityLow

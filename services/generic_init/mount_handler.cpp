@@ -45,6 +45,8 @@ using android::base::StartsWith;
 using android::base::unique_fd;
 using android::dm::LoopControl;
 using android::fs_mgr::ReadFstabFromFile;
+using MountHelpers::TryAccessDir;
+using MountHelpers::TryAccessFile;
 using std::chrono_literals::operator""s;
 
 namespace {
@@ -208,18 +210,6 @@ Fstab fstab_userdata_on_tmpfs = {
         }
     }
 };
-
-bool TryAccessDir(const std::string& path) {
-    std::error_code ec;
-    fs::file_status s = fs::status(path, ec);
-    return (!ec && fs::exists(s) && fs::is_directory(s));
-}
-
-bool TryAccessFile(const std::string& path) {
-    std::error_code ec;
-    fs::file_status s = fs::status(path, ec);
-    return (!ec && fs::exists(s) && fs::is_regular_file(s));
-}
 
 void ParseConfig(void) {
     bool ret;

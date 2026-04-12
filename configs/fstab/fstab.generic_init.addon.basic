@@ -1,2 +1,4 @@
-#<src>				<mnt_point>				<type>		<mnt_flags and options>								<fs_mgr_flags>
-overlay				/system/product/etc/init		overlay		ro,lowerdir=/vendor/etc/overlay-product-etc-init:/product/etc/init		defaults
+#<src>				<mnt_point>				<type>		<mnt_flags and options>												<fs_mgr_flags>
+/vendor/xbin/overlay_remounter_override	/system/xbin/overlay_remounter	none		bind														defaults
+overlay				/system/product/etc/init		overlay		ro,lowerdir=/vendor/etc/overlay-product-etc-init:/product/etc/init						defaults
+overlay				/vendor					overlay		rw,lowerdir=/vendor,upperdir=/mnt/vendor/vendor-overlayfs-upperdir,workdir=/mnt/vendor/vendor-overlayfs-workdir	defaults

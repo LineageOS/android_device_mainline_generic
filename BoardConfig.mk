@@ -117,6 +117,3 @@ SYSTEM_EXT_PUBLIC_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy/public
 # VINTF
 DEVICE_MANIFEST_FILE := \
     $(DEVICE_PATH)/configs/vintf/manifest.xml
-
-ODM_MANIFEST_SKUS := minigbm_imapper5
-ODM_MANIFEST_MINIGBM_IMAPPER5_FILES := external/minigbm-upstream/cros_gralloc/mapper_stablec/mapper.minigbm_upstream.xml

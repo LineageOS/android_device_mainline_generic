@@ -44,9 +44,10 @@ PRODUCT_PACKAGES += \
 TARGET_MESA_ENABLE_SOFTWARE_RENDERER := true
 
 # Graphics allocator
-PRODUCT_PACKAGES += \
-    org.lineageos.device.gralloc.minigbm_upstream_nonapex \
-    org.lineageos.device.gralloc.v2_0
+PRODUCT_COPY_FILES += \
+    device/mainline/common/optional/graphics-allocator-hal_default-hidl-2.0/manifest_mainline_common_graphics-allocator-hal_default-hidl-2.0.xml:$(TARGET_COPY_OUT_VENDOR)/etc/vintf_src/manifest_mainline_common_graphics-allocator-hal_default-hidl-2.0.xml \
+    external/minigbm-upstream/cros_gralloc/aidl/allocator.minigbm_upstream.xml:$(TARGET_COPY_OUT_VENDOR)/etc/vintf_src/allocator.minigbm_upstream.xml \
+    external/minigbm-upstream/cros_gralloc/mapper_stablec/mapper.minigbm_upstream.xml:$(TARGET_COPY_OUT_VENDOR)/etc/vintf_src/mapper.minigbm_upstream.xml
 
 PRODUCT_PACKAGES += \
     android.hardware.graphics.allocator@2.0-impl \
@@ -62,13 +63,11 @@ TARGET_MINIGBM_UPSTREAM_INSIDE_APEX := false
 $(call soong_config_set_bool,minigbm_upstream,include_vintf_fragments,false)
 
 # Graphics composer
-PRODUCT_PACKAGES += \
-    org.lineageos.device.hwcomposer.drm \
-    org.lineageos.device.hwcomposer.drm.rc \
-    org.lineageos.device.hwcomposer.drm_apex \
-    org.lineageos.device.hwcomposer.drmfb \
-    org.lineageos.device.hwcomposer.v2_2 \
-    org.lineageos.device.hwcomposer.v2_4
+PRODUCT_COPY_FILES += \
+    device/mainline/common/optional/drm_hwcomposer/manifest_mainline_common_graphics-composer-hal_drm_hwcomposer_libhardware.xml:$(TARGET_COPY_OUT_VENDOR)/etc/vintf_src/manifest_mainline_common_graphics-composer-hal_default-hidl-2.4.xml \
+    device/mainline/common/optional/graphics-composer-hal_default-hidl-2.2/manifest_mainline_common_graphics-composer-hal_default-hidl-2.2.xml:$(TARGET_COPY_OUT_VENDOR)/etc/vintf_src/manifest_mainline_common_graphics-composer-hal_default-hidl-2.2.xml \
+    external/drm_hwcomposer-upstream/hwc3/hwc3-drm-upstream.xml:$(TARGET_COPY_OUT_VENDOR)/etc/vintf_src/hwc3-drm-upstream.xml \
+    hardware/mainline/common/interfaces/graphics/composer/drmfb/android.hardware.graphics.composer@2.1-service.drmfb.xml:$(TARGET_COPY_OUT_VENDOR)/etc/vintf_src/android.hardware.graphics.composer@2.1-service.drmfb.xml
 
 PRODUCT_PACKAGES += \
     android.hardware.graphics.composer@2.2-service \
@@ -110,6 +109,7 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     device_generic_settings.rc \
     device_generic_settings.sh \
+    hal_services.rc \
     init_dev_config_override.rc
 
 PRODUCT_PACKAGES += \
@@ -117,7 +117,8 @@ PRODUCT_PACKAGES += \
     zram.rc
 
 PRODUCT_PACKAGES += \
-    hardware_detect
+    hardware_detect \
+    overlay_remounter_override
 
 $(call soong_config_set,mainline_common_libinit,set_properties_from,dmi_id)
 
