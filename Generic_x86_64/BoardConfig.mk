@@ -15,7 +15,7 @@ TARGET_GRUB_ARCH := x86_64-efi
 TARGET_GRUB_2ND_ARCH := i386-pc
 
 # Boot parameters
-BOARD_KERNEL_CMDLINE += \
+BOARD_KERNEL_CMDLINE_SERIAL_CONSOLE := \
     8250.nr_uarts=1 \
     console=ttyS0
 
