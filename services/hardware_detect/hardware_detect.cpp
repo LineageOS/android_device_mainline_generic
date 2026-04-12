@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <filesystem>
 #include <list>
 #include <set>
 #include <string>
@@ -21,6 +22,7 @@
 #include <virtgpu_drm.h>
 #include <xf86drm.h>
 
+namespace fs = std::filesystem;
 using namespace android::base;
 
 namespace {
@@ -48,8 +50,6 @@ constexpr char kHwGrallocProp[] = "ro.hardware.gralloc";
 constexpr char kHwHwcProp[] = "ro.hardware.hwcomposer";
 constexpr char kHwVulkanProp[] = "ro.hardware.vulkan";
 
-constexpr char kGrallocApexProp[] = "ro.boot.vendor.apex.org.lineageos.device.gralloc";
-constexpr char kHwcApexProp[] = "ro.boot.vendor.apex.org.lineageos.device.hwcomposer";
 constexpr char kUsbGadgetApexProp[] = "ro.boot.vendor.apex.com.android.hardware.usb.gadget";
 constexpr char kVulkanApexProp[] = "ro.boot.vendor.apex.org.lineageos.device.graphics.vulkan";
 
@@ -69,15 +69,82 @@ constexpr char kSfSupportsBackgroundBlurProp[] = "ro.surface_flinger.supports_ba
 
 constexpr char kUsbControllerProp[] = "sys.usb.controller";
 
+const std::string kApexSelectPropPrefix[] = "ro.boot.vendor.apex.";
+
 const std::string kDmiIdPath = "/sys/devices/virtual/dmi/id/";
+const std::string kVintfDestDir = "/vendor/etc/vintf/manifest/";
+const std::string kVintfSrcDir = "/vendor/etc/vintf_src/";
 
 const std::set<std::string> kDrmSysfbNames = {"efidrm", "simpledrm", "vesadrm"};
 const std::set<std::string> kMustUseFbDisplayGpus = {};
 
-struct HalApex {
+struct HalService {
     std::string name;
+
+    // TODO: Implement support for this
+    std::string apex_base_name;
+    std::string apex_full_name;
+
     std::list<std::string> init_rc_services;
-};
+    std::list<std::string> vintf_fragments;
+}
+
+enum class GrallocHalServices {
+    Unset,
+    MinigbmUpstream,
+    V2_0,
+}
+
+const HalService kMinigbmUpstreamHalService = {
+    .name = "Minigbm (Upstream)",
+    .init_rc_services = {"vendor.graphics.allocator.minigbm_upstream"},
+    .vintf_fragments = {"allocator.minigbm_upstream.xml", "mapper.minigbm_upstream.xml"},
+}
+
+const HalService kGrallocV2_0HalService = {
+    .name = "AOSP Gralloc v2.0",
+    .init_rc_services = {"vendor.gralloc-2-0"},
+    .vintf_fragments = {"manifest_mainline_common_graphics-allocator-hal_default-hidl-2.0.xml"},
+}
+
+const std::unordered_map<GrallocHalServices, HalService*> kGrallocHalServiceMap = {
+    {GrallocHalServices::MinigbmUpstream, &kMinigbmUpstreamHalService},
+    {GrallocHalServices::V2_0, &kGrallocV2_0HalService},
+}
+
+enum class HwcHalServices {
+    Unset,
+    DrmFb,
+    DrmUpstream,
+    V2_2,
+}
+
+const HalService kDrmFbHalService = {
+    .name = "DRM Framebuffer",
+    .init_rc_services = {"vendor.hwcomposer-2-1.drmfb"},
+    .vintf_fragments = {"android.hardware.graphics.composer@2.1-service.drmfb.xml"},
+}
+
+const HalService kDrmUpstreamHalService = {
+    .name = "DRM (Upstream)",
+    .init_rc_services = {"vendor.hwcomposer-3.drm_upstream"},
+    .vintf_fragments = {"hwc3-drm-upstream.xml"},
+}
+
+const HalService kHwcV2_2HalService = {
+    .name = "AOSP HWComposer v2.2",
+    .init_rc_services = {"vendor.hwcomposer-2-2"},
+    .vintf_fragments = {"manifest_mainline_common_graphics-composer-hal_default-hidl-2.2.xml"},
+}
+
+const std::unordered_map<HwcHalServices, HalService*> kHwcHalServiceMap = {
+    {HwcHalServices::DrmFb, &kDrmFbHalService},
+    {HwcHalServices::DrmUpstream, &kDrmUpstreamHalService},
+    {HwcHalServices::V2_2, &kHwcV2_2HalService},
+}
+
+// `apex_base_name`, `apex_full_name` or full name of APEX that is empty
+std::unordered_map<std::string, std::string> HalServiceApexSelections;
 
 enum class HwAudioPrimary {
     Unset,
@@ -135,42 +202,6 @@ const std::unordered_map<HwVulkan, std::string> kHwVulkanMap = {
         {HwVulkan::Virtio, "virtio"},   {HwVulkan::Lvp, "lvp_mesa3d"},
 };
 
-enum class GrallocApex {
-    Unset,
-    MinigbmUpstream,
-    V2_0,
-};
-
-const std::unordered_map<GrallocApex, HalApex> kGrallocApexMap = {
-        {GrallocApex::MinigbmUpstream,
-         {"org.lineageos.device.gralloc.minigbm_upstream_nonapex",
-          {"vendor.graphics.allocator.minigbm_upstream"}}},
-        {GrallocApex::V2_0,
-         {"org.lineageos.device.gralloc.v2_0", {"vendor.gralloc-2-0"}}},
-};
-
-enum class HwcApex {
-    Unset,
-    Drm,
-    DrmApex,
-    DrmFb,
-    V2_2,
-    V2_4,
-};
-
-const std::unordered_map<HwcApex, HalApex> kHwcApexMap = {
-        {HwcApex::Drm,
-         {"org.lineageos.device.hwcomposer.drm",
-          {"vendor.hwcomposer-3.drm_upstream"}}},  // drm HWC AIDL HAL in /vendor
-        {HwcApex::DrmApex,
-         {"org.lineageos.device.hwcomposer.drm_apex",
-          {"vendor.hwcomposer-3.drm_upstream-apex"}}},  // drm HWC AIDL HAL in /apex
-        {HwcApex::DrmFb,
-         {"org.lineageos.device.hwcomposer.drmfb", {"vendor.hwcomposer-2-1.drmfb"}}},
-        {HwcApex::V2_2, {"org.lineageos.device.hwcomposer.v2_2", {"vendor.hwcomposer-2-2"}}},
-        {HwcApex::V2_4, {"org.lineageos.device.hwcomposer.v2_4", {"vendor.hwcomposer-2-4"}}},
-};
-
 enum class UsbGadgetApex {
     Unset,
     Mainline,
@@ -207,13 +238,13 @@ const std::unordered_map<MinigbmGenericBackend, std::string> kMinigbmGenericBack
 };
 
 int gGlesVersion = kGlesVersion20;
+GrallocHalService gGrallocHalService = GrallocHalService::Unset;
+HwcHalService gHwcHalService = HwcHalService::Unset;
 HwAudioPrimary gHwAudioPrimary = HwAudioPrimary::Unset;
 HwEgl gHwEgl = HwEgl::Unset;
 HwGralloc gHwGralloc = HwGralloc::Unset;
 HwHwc gHwHwc = HwHwc::Unset;
 HwVulkan gHwVulkan = HwVulkan::Unset;
-GrallocApex gGrallocApex = GrallocApex::Unset;
-HwcApex gHwcApex = HwcApex::Unset;
 UsbGadgetApex gUsbGadgetApex = UsbGadgetApex::Unset;
 VulkanApex gVulkanApex = VulkanApex::Unset;
 MinigbmGenericBackend gMinigbmGenericBackend = MinigbmGenericBackend::Unset;
@@ -221,13 +252,13 @@ android_pixel_format_t gSfNativeWindowBuffersFormat = HAL_PIXEL_FORMAT_RGBA_8888
 
 const std::unordered_map<std::string, int*> kBootOverridesProp = {
         {"gles_version", &gGlesVersion},
+        {"gralloc_hal_service", reinterpret_cast<int*>(gGrallocHalService)},
+        {"hwc_hal_service", reinterpret_cast<int*>(gHwcHalService)},
         {"hw_audio_primary", reinterpret_cast<int*>(&gHwAudioPrimary)},
         {"hw_egl", reinterpret_cast<int*>(&gHwEgl)},
         {"hw_gralloc", reinterpret_cast<int*>(&gHwGralloc)},
         {"hw_hwc", reinterpret_cast<int*>(&gHwHwc)},
         {"hw_vulkan", reinterpret_cast<int*>(&gHwVulkan)},
-        {"gralloc_apex", reinterpret_cast<int*>(&gGrallocApex)},
-        {"hwc_apex", reinterpret_cast<int*>(&gHwcApex)},
         {"usb_gadget_apex", reinterpret_cast<int*>(&gUsbGadgetApex)},
         {"vulkan_apex", reinterpret_cast<int*>(&gVulkanApex)},
         {"minigbm_generic_backend", reinterpret_cast<int*>(&gMinigbmGenericBackend)},
@@ -242,6 +273,33 @@ void ProcessBootOverrides() {
             LOG(INFO) << __FUNCTION__ << "(): Override " << name << " from "
                       << std::to_string(*pvar) << " to " << std::to_string(new_value);
             *pvar = new_value;
+        }
+    }
+}
+
+// TODO: implement
+void MountOverlayfsOnVendor(void) {
+}
+bool EnableHalService(const HalService* hal_service, bool enable) {
+    bool ret = true;
+    std::error_code ec;
+    LOG(INFO) << enable ? "Enable" : "Disable" << " HAL service: " << hal_service->name;
+    if (enable) {
+        if (!hal_service->apex_base_name.empty() && !hal_service->apex_full_name.empty()) {
+            HalServiceApexSelections[hal_service->apex_base_name] = hal_service->apex_full_name;
+        }
+        for (const auto& vf : hal_service->vintf_fragments) {
+            if (!fs::copy_file(kVintfSrcDir + vf, kVintfDestDir + vf, ec)) {
+                LOG(ERROR) << "Failed to copy vintf fragment " << vf;
+                ret = false;
+            }
+        }
+    } else {
+        for (const auto& svc : hal_service->init_rc_services) {
+            if (!SetProperty(kCtlStopProp, svc)) {
+                LOG(ERROR) << "Failed to stop service " << svc;
+                ret = false;
+            }
         }
     }
 }
@@ -329,45 +387,24 @@ bool ApplySelections(void) {
         LOG(WARNING) << "Vulkan is unset";
     }
 
-    if (gGrallocApex != GrallocApex::Unset) {
-        strp = &kGrallocApexMap.at(gGrallocApex).name;
-        LOG(INFO) << "Set Graphics Allocator APEX to " << *strp;
-        ret &= SetProperty(kGrallocApexProp, *strp);
-
-        /*
-            Disable init.rc services of the other Gralloc APEXes.
-            Some Gralloc APEXes may not contain init.rc,
-            and the actual init.rc to be used is in /vendor/etc/init.
-            These APEXes may only contain vintf manifest.
-        */
-        for (const auto& [id, apex] : kGrallocApexMap) {
-            if (apex.name == *strp) continue;
-
-            for (const auto& svc : apex.init_rc_services) {
-                LOG(INFO) << "Stop service " << svc;
-                SetProperty(kCtlStopProp, svc);
-            }
+    if (gGrallocHalService != GrallocHalService::Unset) {
+        auto p = &kGrallocHalServiceMap.at(gGrallocHalService);
+        LOG(INFO) << "Set Graphics Allocator HAL service to " << p->name;
+        for (const auto& [ map_key, map_value ] : kGrallocHalServiceMap) {
+            ret &= EnableHalService(map_value, map_key == gGrallocHalService);
         }
     } else {
-        LOG(WARNING) << "Graphics Allocator APEX is unset";
+        LOG(WARNING) << "Graphics Allocator HAL service is unset";
     }
 
-    if (gHwcApex != HwcApex::Unset) {
-        strp = &kHwcApexMap.at(gHwcApex).name;
-        LOG(INFO) << "Set Graphics Composer APEX to " << *strp;
-        ret &= SetProperty(kHwcApexProp, *strp);
-
-        // Same as Gralloc APEX's logic
-        for (const auto& [id, apex] : kHwcApexMap) {
-            if (apex.name == *strp) continue;
-
-            for (const auto& svc : apex.init_rc_services) {
-                LOG(INFO) << "Stop service " << svc;
-                SetProperty(kCtlStopProp, svc);
-            }
+    if (gHwcHalService != HwcHalService::Unset) {
+        auto p = &kHwcHalServiceMap.at(gHwcHalService);
+        LOG(INFO) << "Set Graphics Composer HAL service to " << p->name;
+        for (const auto& [ map_key, map_value ] : kHwcHalServiceMap) {
+            ret &= EnableHalService(map_value, map_key == gHwcHalService);
         }
     } else {
-        LOG(WARNING) << "Graphics Composer APEX is unset";
+        LOG(WARNING) << "Graphics Composer HAL service is unset";
     }
 
     // Enablue blur if not using Swiftshader graphics
@@ -376,13 +413,8 @@ bool ApplySelections(void) {
         ret &= SetProperty(kSfSupportsBackgroundBlurProp, "1");
     }
 
-    /*
-     * HACK: IMapper loads the lib using openDeclaredPassthroughHal()
-     *       If vintf manifest is in APEX and the lib is in /vendor, it will not load
-     */
-    if (gGrallocApex == GrallocApex::MinigbmUpstream) {
-        LOG(INFO) << "HACK: Set odm sku to minigbm_imapper5";
-        ret &= SetProperty(kBootOdmSkuProp, "minigbm_imapper5");
+    for (const auto& [ apex_base_name, apex_full_name ] : HalServiceApexSelections) {
+        ret &= SetProperty(kApexSelectPropPrefix + apex_base_name, apex_full_name);
     }
 
     if (!ret) LOG(ERROR) << __FUNCTION__ << "(): Failed to set some properties";
@@ -408,8 +440,8 @@ void SetupFramebufferDisplay(void) {
     gHwGralloc = HwGralloc::Default;
     gHwHwc = HwHwc::Unset;
 
-    gGrallocApex = GrallocApex::V2_0;
-    gHwcApex = HwcApex::V2_2;
+    gGrallocHalService = GrallocHalService::V2_0;
+    gHwcHalService = HwcHalService::V2_2;
 
     gSfNativeWindowBuffersFormat = HAL_PIXEL_FORMAT_BGRA_8888;
 
@@ -418,23 +450,14 @@ void SetupFramebufferDisplay(void) {
 
 void OnDetectDrmSysfb(void) {
     LOG(INFO) << "Detected DRM sysfb";
-
-    /*
-        gHwcApex = HwcApex::Drm;
-        gGrallocApex = GrallocApex::MinigbmUpstream;
-        gHwGralloc = HwGralloc::MinigbmUpstream;
-
-        UseSwiftshaderGraphics();
-    */
-
     SetupFramebufferDisplay();
 }
 
 void OnDetectUnknownGpu(void) {
     LOG(WARNING) << "GPU is unsupported, applying defaults";
 
-    gGrallocApex = GrallocApex::MinigbmUpstream;
-    gHwcApex = HwcApex::Drm;
+    gGrallocHalService = GrallocHalService::MinigbmUpstream;
+    gHwcHalService = HwcHalService::DrmUpstream;
     gHwGralloc = HwGralloc::MinigbmUpstream;
 
     gHwEgl = HwEgl::Mesa;
@@ -445,13 +468,13 @@ void OnDetectAmdGpu(int fd) {
 
     ret = drmSetClientCap(fd, DRM_CLIENT_CAP_ATOMIC, 1);
     if (!ret) {
-        gHwcApex = HwcApex::Drm;
+        gHwcHalService = HwcHalService::DrmUpstream;
     } else {
-        gHwcApex = HwcApex::DrmFb;
+        gHwcHalService = HwcHalService::DrmUpstreamFb;
     }
 
     gMinigbmGenericBackend = MinigbmGenericBackend::DumbGeneric;
-    gGrallocApex = GrallocApex::MinigbmUpstream;
+    gGrallocHalService = GrallocHalService::MinigbmUpstream;
     gHwGralloc = HwGralloc::MinigbmUpstream;
 
     gGlesVersion = kGlesVersion32;
@@ -462,8 +485,8 @@ void OnDetectAmdGpu(int fd) {
 void OnDetectIntelGpu(int fd) {
     int ret = 0;
 
-    gHwcApex = HwcApex::Drm;
-    gGrallocApex = GrallocApex::MinigbmUpstream;
+    gHwcHalService = HwcHalService::DrmUpstream;
+    gGrallocHalService = GrallocHalService::MinigbmUpstream;
     gHwGralloc = HwGralloc::MinigbmUpstream;
 
     if (!IsForcedSwiftshader()) {
@@ -505,8 +528,8 @@ void OnDetectIntelGpu(int fd) {
 }
 
 void OnDetectNouveauGpu(void) {
-    gHwcApex = HwcApex::DrmFb;
-    gGrallocApex = GrallocApex::MinigbmUpstream;
+    gHwcHalService = HwcHalService::DrmUpstreamFb;
+    gGrallocHalService = GrallocHalService::MinigbmUpstream;
     gHwGralloc = HwGralloc::MinigbmUpstream;
 
     gGlesVersion = kGlesVersion31;
@@ -519,10 +542,10 @@ void OnDetectQxlGpu(void) {
 }
 
 void OnDetectRadeonGpu(void) {
-    gHwcApex = HwcApex::DrmFb;
+    gHwcHalService = HwcHalService::DrmUpstreamFb;
 
     gMinigbmGenericBackend = MinigbmGenericBackend::DumbGeneric;
-    gGrallocApex = GrallocApex::MinigbmUpstream;
+    gGrallocHalService = GrallocHalService::MinigbmUpstream;
     gHwGralloc = HwGralloc::MinigbmUpstream;
 
     gGlesVersion = kGlesVersion31;
@@ -532,8 +555,8 @@ void OnDetectRadeonGpu(void) {
 void OnDetectVirtioGpu(int fd) {
     int ret = 0;
 
-    gGrallocApex = GrallocApex::MinigbmUpstream;
-    gHwcApex = HwcApex::Drm;
+    gGrallocHalService = GrallocHalService::MinigbmUpstream;
+    gHwcHalService = HwcHalService::DrmUpstream;
     gHwGralloc = HwGralloc::MinigbmUpstream;
 
     uint32_t value;
@@ -566,8 +589,8 @@ void OnDetectVmwgfxGpu(void) {
         // 3D acceleration does not work on VirtualBox
         SetupFramebufferDisplay();
     } else {
-        gGrallocApex = GrallocApex::MinigbmUpstream;
-        gHwcApex = HwcApex::Drm;
+        gGrallocHalService = GrallocHalService::MinigbmUpstream;
+        gHwcHalService = HwcHalService::DrmUpstream;
         gHwGralloc = HwGralloc::MinigbmUpstream;
 
         gGlesVersion = kGlesVersion31;
@@ -579,6 +602,8 @@ void OnDetectVmwgfxGpu(void) {
 
 int main(int, char* argv[]) {
     InitLogging(argv, &KernelLogger);
+
+    MountOverlayfsOnVendor();
 
     if (access("/dev/snd/pcmC0D0p", F_OK) == 0) {
         LOG(INFO) << "Sound card 0 device 0 playback is present, enable audio output";
