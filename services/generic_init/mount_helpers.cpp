@@ -18,11 +18,33 @@
 #include "switch_root.h"
 
 #include <android-base/logging.h>
+#include <android-base/strings.h>
 #include <fs_mgr.h>
 #include <fs_mgr_overlayfs.h>
 #include <fstab/fstab.h>
 
 namespace MountHelpers {
+
+static void CreateOverlayfsUpperdirAndWorkdirIfNotPresent(const FstabEntry& entry) {
+    for (const auto& fs_option : android::base::Split(entry.fs_options)) {
+        auto equal_sign = flag.find('=');
+        if (equal_sign == std::string::npos) continue;
+
+        const auto param = flag.substr(0, equal_sign);
+        const auto arg = flag.substr(equal_sign + 1);
+
+        if (param != "upperdir" && param != "workdir") continue;
+        if (TryAccessDir(arg)) continue;
+
+        LOG(INFO) << "Creating " << param << " for overlayfs mount point "
+                  << entry.mount_point << ": " << arg;
+
+        // TODO: Bring mkdir_recursive() to util.cpp and use it
+        if (mkdir(arg.c_str(), 0755)) {
+            LOG(ERROR) << "Failed to create directory " << arg;
+        }
+    }
+}
 
 static bool GetRootEntry(FstabEntry* root_entry) {
     Fstab proc_mounts;
@@ -45,6 +67,18 @@ static bool GetRootEntry(FstabEntry* root_entry) {
     *root_entry = std::move(*entry);
 
     return true;
+}
+
+bool TryAccessDir(const std::string& path) {
+    std::error_code ec;
+    fs::file_status s = fs::status(path, ec);
+    return (!ec && fs::exists(s) && fs::is_directory(s));
+}
+
+bool TryAccessFile(const std::string& path) {
+    std::error_code ec;
+    fs::file_status s = fs::status(path, ec);
+    return (!ec && fs::exists(s) && fs::is_regular_file(s));
 }
 
 bool MountPartition(Fstab& fstab_, const Fstab::iterator& begin,
@@ -123,6 +157,7 @@ bool MountPartitions(Fstab& fstab_) {
 
     for (const auto& entry : fstab_) {
         if (entry.fs_type == "overlay") {
+            CreateOverlayfsUpperdirAndWorkdirIfNotPresent(entry);
             fs_mgr_mount_overlayfs_fstab_entry(entry);
         }
     }

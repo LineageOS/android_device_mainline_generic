@@ -18,6 +18,13 @@ prebuilt_etc {
 }
 
 prebuilt_etc {
+    name: "hal_services.rc",
+    src: "hal_services.rc",
+    sub_dir: "init",
+    vendor: true,
+}
+
+prebuilt_etc {
     name: "init.generic.rc",
     src: "init.generic.rc",
     sub_dir: "init/hw",
