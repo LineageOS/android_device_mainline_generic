@@ -50,6 +50,7 @@ constexpr char kHwVulkanProp[] = "ro.hardware.vulkan";
 
 constexpr char kGrallocApexProp[] = "ro.boot.vendor.apex.org.lineageos.device.gralloc";
 constexpr char kHwcApexProp[] = "ro.boot.vendor.apex.org.lineageos.device.hwcomposer";
+constexpr char kUsbGadgetApexProp[] = "ro.boot.vendor.apex.com.android.hardware.usb.gadget";
 constexpr char kVulkanApexProp[] = "ro.boot.vendor.apex.org.lineageos.device.graphics.vulkan";
 
 constexpr char kGraphicsGpuNameProp[] = "ro.vendor.graphics.gpu.name";
@@ -65,6 +66,8 @@ constexpr char kMinigbmGenericBackendProp[] = "vendor.minigbm.generic_backend";
 constexpr char kSfNativeWindowBuffersFormatProp[] =
         "ro.surface_flinger.native_window_buffers_format";
 constexpr char kSfSupportsBackgroundBlurProp[] = "ro.surface_flinger.supports_background_blur";
+
+constexpr char kUsbControllerProp[] = "sys.usb.controller";
 
 const std::string kDmiIdPath = "/sys/devices/virtual/dmi/id/";
 
@@ -168,6 +171,17 @@ const std::unordered_map<HwcApex, HalApex> kHwcApexMap = {
         {HwcApex::V2_4, {"org.lineageos.device.hwcomposer.v2_4", {"vendor.hwcomposer-2-4"}}},
 };
 
+enum class UsbGadgetApex {
+    Unset,
+    Mainline,
+    None,
+};
+
+const std::unordered_map<UsbGadgetApex, std::string> kUsbGadgetApexMap = {
+        {UsbGadgetApex::Mainline, "com.android.hardware.usb.gadget.mainline"},
+        {UsbGadgetApex::None, "com.android.hardware.usb.gadget.none"},
+};
+
 enum class VulkanApex {
     Unset,
     No_apex,
@@ -200,6 +214,7 @@ HwHwc gHwHwc = HwHwc::Unset;
 HwVulkan gHwVulkan = HwVulkan::Unset;
 GrallocApex gGrallocApex = GrallocApex::Unset;
 HwcApex gHwcApex = HwcApex::Unset;
+UsbGadgetApex gUsbGadgetApex = UsbGadgetApex::Unset;
 VulkanApex gVulkanApex = VulkanApex::Unset;
 MinigbmGenericBackend gMinigbmGenericBackend = MinigbmGenericBackend::Unset;
 android_pixel_format_t gSfNativeWindowBuffersFormat = HAL_PIXEL_FORMAT_RGBA_8888;
@@ -213,6 +228,7 @@ const std::unordered_map<std::string, int*> kBootOverridesProp = {
         {"hw_vulkan", reinterpret_cast<int*>(&gHwVulkan)},
         {"gralloc_apex", reinterpret_cast<int*>(&gGrallocApex)},
         {"hwc_apex", reinterpret_cast<int*>(&gHwcApex)},
+        {"usb_gadget_apex", reinterpret_cast<int*>(&gUsbGadgetApex)},
         {"vulkan_apex", reinterpret_cast<int*>(&gVulkanApex)},
         {"minigbm_generic_backend", reinterpret_cast<int*>(&gMinigbmGenericBackend)},
         {"sf_native_window_buffers_format", reinterpret_cast<int*>(&gSfNativeWindowBuffersFormat)},
@@ -242,6 +258,14 @@ bool ApplySelections(void) {
         ret &= SetProperty(kHwAudioPrimaryProp, *strp);
     } else {
         LOG(WARNING) << "Audio primary module is unset";
+    }
+
+    if (gUsbGadgetApex != UsbGadgetApex::Unset) {
+        strp = &kUsbGadgetApexMap.at(gUsbGadgetApex);
+        LOG(INFO) << "Set USB Gadget APEX to " << *strp;
+        ret &= SetProperty(kUsbGadgetApexProp, *strp);
+    } else {
+        LOG(WARNING) << "USB Gadget APEX is unset";
     }
 
     if (gSfNativeWindowBuffersFormat != HAL_PIXEL_FORMAT_RGBA_8888) {
@@ -559,6 +583,13 @@ int main(int, char* argv[]) {
     if (access("/dev/snd/pcmC0D0p", F_OK) == 0) {
         LOG(INFO) << "Sound card 0 device 0 playback is present, enable audio output";
         gHwAudioPrimary = HwAudioPrimary::Tinyhal;
+    }
+
+    if (GetProperty(kUsbControllerProp, "").empty()) {
+        gUsbGadgetApex = UsbGadgetApex::None;
+    } else {
+        LOG(INFO) << "Detected USB controller, enable USB Gadget support";
+        gUsbGadgetApex = UsbGadgetApex::Mainline;
     }
 
     if (IsForcedFramebufferDisplay()) {
