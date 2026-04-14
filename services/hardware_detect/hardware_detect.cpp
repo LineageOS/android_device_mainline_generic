@@ -68,6 +68,7 @@ constexpr char kSfNativeWindowBuffersFormatProp[] =
         "ro.surface_flinger.native_window_buffers_format";
 constexpr char kSfSupportsBackgroundBlurProp[] = "ro.surface_flinger.supports_background_blur";
 
+constexpr char kUsbAdbDisabledProp[] = "vendor.sys.usb.adb.disabled";
 constexpr char kUsbControllerProp[] = "sys.usb.controller";
 
 const std::string kApexSelectPropPrefix = "ro.boot.vendor.apex.";
@@ -328,8 +329,12 @@ bool ApplySelections(void) {
         strp = &kUsbGadgetApexMap.at(gUsbGadgetApex);
         LOG(INFO) << "Set USB Gadget APEX to " << *strp;
         ret &= SetProperty(kUsbGadgetApexProp, *strp);
+        if (gUsbGadgetApex == UsbGadgetApex::None) {
+            ret &= SetProperty(kUsbAdbDisabledProp, "true");
+        }
     } else {
         LOG(WARNING) << "USB Gadget APEX is unset";
+        ret &= SetProperty(kUsbAdbDisabledProp, "true");
     }
 
     if (gSfNativeWindowBuffersFormat != HAL_PIXEL_FORMAT_RGBA_8888) {
