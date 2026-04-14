@@ -7,3 +7,5 @@ allow vendor_hardware_detect gpu_device:dir r_dir_perms;
 allow vendor_hardware_detect gpu_device:chr_file { getattr ioctl map open read write };
 
 r_dir_file(vendor_hardware_detect, audio_device)
+
+set_prop(vendor_hardware_detect, vendor_usb_prop)
