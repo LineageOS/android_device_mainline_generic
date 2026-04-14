@@ -74,7 +74,7 @@ TARGET_KERNEL_CONFIG_EXT := \
     $(DEVICE_PATH)/configs/kernel/debian.config \
     $(DEVICE_PATH)/configs/kernel/fix-build.config \
     $(DEVICE_PATH)/configs/kernel/customizations.config
-TARGET_KERNEL_SOURCE ?= kernel/mainline/linux
+TARGET_KERNEL_SOURCE ?= kernel/mainline/android-mainline
 
 # Kernel modules
 BOARD_KERNEL_MODULES_LOAD_ALLOW_MISSING := true
