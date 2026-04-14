@@ -23,6 +23,7 @@ BOARD_KERNEL_CMDLINE := \
     $(MAINLINE_COMMON_ANDROIDBOOT_PARAMS) \
     $(MAINLINE_COMMON_KERNEL_PARAMS) \
     androidboot.addon_fstab_suffix=basic \
+    androidboot.console=tty0 \
     androidboot.hardware=generic \
     androidboot.hypervisor.version=1 \
     androidboot.hypervisor.vm.supported=1 \
