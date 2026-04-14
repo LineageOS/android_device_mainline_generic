@@ -39,6 +39,7 @@
 #include <android-base/logging.h>
 #include <android-base/stringify.h>
 #include <android-base/stringprintf.h>
+#include <android-base/strings.h>
 #include <modprobe/modprobe.h>
 #include <private/android_filesystem_config.h>
 
@@ -215,6 +216,33 @@ void ExecuteSecondStageInit(void) {
 
 }  // namespace
 
+std::vector<std::string> GetModulesToLoad(const std::string& module_base_dir, const std::string& module_load_list) {
+    std::string prefix_list_path = module_base_dir + "/" + module_load_list + "_prefix";
+    std::string prefix_list_buf;
+    std::vector<std::string> prefix_list;
+    std::vector<std::string> result;
+
+    if (!android::base::ReadFileToString(prefix_list_path, &prefix_list_buf)) return result;
+    prefix_list = android::base::Split(prefix_list_buf, "\n");
+    if (prefix_list.empty()) return result;
+
+    for (const auto& entry : fs::directory_iterator(module_base_dir)) {
+        std::string filename = entry.path().filename();
+        if (!android::base::EndsWith(filename, ".ko")) continue;
+        for (const auto& prefix : prefix_list) {
+            if (prefix.empty()) continue;
+            if (android::base::StartsWith(filename, prefix)) {
+                LOG(INFO) << "Add kernel module " << filename
+                          << " to load list based on prefix match: "
+                          << prefix;
+                result.push_back(filename);
+            }
+        }
+    }
+
+    return result;
+}
+
 std::string GetModuleLoadList(BootMode boot_mode, const std::string& dir_path) {
     std::string module_load_file;
 
@@ -242,9 +270,9 @@ std::string GetModuleLoadList(BootMode boot_mode, const std::string& dir_path) {
     return module_load_file;
 }
 
-#define MODULE_BASE_DIR "/lib/modules"
-bool LoadKernelModules(BootMode boot_mode, bool strict, bool want_parallel,
-                       int& modules_loaded) {
+bool LoadKernelModules(BootMode boot_mode, bool strict, bool want_parallel, const std::string& module_base_dir) {
+    boot_clock::time_point module_start_time = boot_clock::now();
+    int modules_loaded = 0;
     struct utsname uts {};
     if (uname(&uts)) {
         LOG(FATAL) << "Failed to get kernel version.";
@@ -254,7 +282,7 @@ bool LoadKernelModules(BootMode boot_mode, bool strict, bool want_parallel,
         LOG(FATAL) << "Failed to parse kernel version " << uts.release;
     }
 
-    std::unique_ptr<DIR, decltype(&closedir)> base_dir(opendir(MODULE_BASE_DIR), closedir);
+    std::unique_ptr<DIR, decltype(&closedir)> base_dir(opendir(module_base_dir.c_str()), closedir);
     if (!base_dir) {
         LOG(INFO) << "Unable to open /lib/modules, skipping module loading.";
         return true;
@@ -299,9 +327,13 @@ bool LoadKernelModules(BootMode boot_mode, bool strict, bool want_parallel,
     std::sort(module_dirs.begin(), module_dirs.end());
 
     for (const auto& module_dir : module_dirs) {
-        std::string dir_path = MODULE_BASE_DIR "/";
+        std::string dir_path = module_base_dir + "/";
         dir_path.append(module_dir);
-        Modprobe m({dir_path}, GetModuleLoadList(boot_mode, dir_path));
+        auto module_dir_module_load_list = GetModuleLoadList(boot_mode, dir_path);
+        Modprobe m({dir_path}, module_dir_module_load_list);
+        for (const auto& mod : GetModulesToLoad(module_base_dir, module_dir_module_load_list)) {
+            m.LoadWithAliases(mod, strict);
+        }
         bool retval = m.LoadListedModules(strict);
         modules_loaded = m.GetModuleCount();
         if (modules_loaded > 0) {
@@ -310,12 +342,21 @@ bool LoadKernelModules(BootMode boot_mode, bool strict, bool want_parallel,
         }
     }
 
-    Modprobe m({MODULE_BASE_DIR}, GetModuleLoadList(boot_mode, MODULE_BASE_DIR));
+    auto module_load_list = GetModuleLoadList(boot_mode, module_base_dir);
+    Modprobe m({module_base_dir}, module_load_list);
+    for (const auto& mod : GetModulesToLoad(module_base_dir, module_load_list)) {
+        m.LoadWithAliases(mod, strict);
+    }
     bool retval = (want_parallel) ? m.LoadModulesParallel(std::thread::hardware_concurrency())
                                   : m.LoadListedModules(strict);
     modules_loaded = m.GetModuleCount();
     if (modules_loaded > 0) {
-        LOG(INFO) << "Loaded " << modules_loaded << " modules from " << MODULE_BASE_DIR;
+        auto module_elapse_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+                boot_clock::now() - module_start_time);
+        setenv(kEnvInitModuleDurationMs, std::to_string(module_elapse_time.count()).c_str(), 1);
+        LOG(INFO) << "Loaded " << modules_loaded << " kernel modules"
+                  << " from " << module_base_dir
+                  << " took " << module_elapse_time.count() << " ms";
     }
     return retval;
 }
@@ -438,19 +479,10 @@ int FirstStageMain(int argc, char** argv) {
     auto want_parallel =
             bootconfig.find("androidboot.load_modules_parallel = \"true\"") != std::string::npos;
 
-    boot_clock::time_point module_start_time = boot_clock::now();
-    int module_count = 0;
     BootMode boot_mode = GetBootMode(cmdline, bootconfig);
     if (!LoadKernelModules(boot_mode, false,
-                           want_parallel, module_count)) {
-        LOG(ERROR) << "Failed to load kernel modules";
-    }
-    if (module_count > 0) {
-        auto module_elapse_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-                boot_clock::now() - module_start_time);
-        setenv(kEnvInitModuleDurationMs, std::to_string(module_elapse_time.count()).c_str(), 1);
-        LOG(INFO) << "Loaded " << module_count << " kernel modules took "
-                  << module_elapse_time.count() << " ms";
+                           want_parallel, "/lib/modules")) {
+        LOG(ERROR) << "Failed to load kernel modules from ramdisk";
     }
 
     if (want_console == FirstStageConsoleParam::CONSOLE_ON_FAILURE) {
@@ -504,6 +536,12 @@ int FirstStageMain(int argc, char** argv) {
     SwitchRoot("/first_stage_ramdisk");
 
     MountHandler::OnPostBlockDevices();
+
+    if (!LoadKernelModules(boot_mode, false,
+                           want_parallel, "/vendor/lib/modules")) {
+        LOG(ERROR) << "Failed to load kernel modules from vendor partition";
+    }
+
     ueventd_main(ParseConfig({"/system/etc/ueventd.rc"}), false);
 
     struct stat new_root_info {};

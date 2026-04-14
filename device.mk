@@ -136,6 +136,7 @@ PRODUCT_OTA_ENFORCE_VINTF_KERNEL_REQUIREMENTS := false
 
 # Kernel modules
 PRODUCT_COPY_FILES += \
+    $(DEVICE_PATH)/configs/modprobe/modules.load_prefix:$(TARGET_COPY_OUT_VENDOR)/lib/modules/modules.load_prefix \
     $(DEVICE_PATH)/configs/modprobe/modules.options:$(TARGET_COPY_OUT_RAMDISK)/lib/modules/modules.options \
     $(DEVICE_PATH)/configs/modprobe/modules.options:$(TARGET_COPY_OUT_VENDOR)/lib/modules/modules.options
 
