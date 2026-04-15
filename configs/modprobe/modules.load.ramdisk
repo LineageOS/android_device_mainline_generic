@@ -4,6 +4,7 @@ ext4.ko
 f2fs.ko
 fat.ko
 isofs.ko
+loop.ko
 msdos.ko
 ntfs3.ko
 overlay.ko
