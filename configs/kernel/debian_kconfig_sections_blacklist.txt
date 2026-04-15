@@ -1,0 +1,5 @@
+arch/
+drivers/android/
+drivers/md/
+drivers/staging/android/
+init/
