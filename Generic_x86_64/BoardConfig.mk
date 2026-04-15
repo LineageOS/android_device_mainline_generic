@@ -21,13 +21,3 @@ BOARD_KERNEL_CMDLINE_SERIAL_CONSOLE := \
 
 # Kernel
 BOARD_KERNEL_IMAGE_NAME := bzImage
-TARGET_KERNEL_CONFIG := x86_64_defconfig
-TARGET_KERNEL_CONFIG_EXT += \
-    $(TARGET_DEVICE_PATH)/configs/kernel/debian-amd64.config \
-    kernel/mainline/configs/fragments/android-base-pre/common.config \
-    kernel/mainline/configs/fragments/android-base-pre/x86_64.config \
-    kernel/configs/b/android-6.12/android-base.config \
-    kernel/mainline/configs/fragments/android-base-conditional/CONFIG_X86-y.config \
-    kernel/mainline/configs/fragments/android-base-conditional/CONFIG_X86_64-y.config \
-    kernel/mainline/configs/fragments/common.config \
-    kernel/mainline/configs/fragments/y/fbcon.config

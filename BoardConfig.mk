@@ -71,14 +71,18 @@ $(call soong_config_set,minigbm_upstream,platform,all)
 $(call soong_config_set_bool,drmfb_composer,uses_minigbm,true)
 
 # Kernel
+TARGET_KERNEL_CONFIG := gki_defconfig
 TARGET_KERNEL_CONFIG_EXT := \
-    $(DEVICE_PATH)/configs/kernel/debian.config \
+    $(DEVICE_PATH)/configs/kernel/pre-debian.config \
+    $(PRODUCT_OUT)/obj/KCONFIG_OBJ/debian-filtered.config \
     $(DEVICE_PATH)/configs/kernel/fix-build.config \
+    kernel/mainline/configs/fragments/y/fbcon.config \
     $(DEVICE_PATH)/configs/kernel/customizations.config
 TARGET_KERNEL_SOURCE ?= kernel/mainline/android-mainline
 
 # Kernel modules
 BOARD_KERNEL_MODULES_LOAD_ALLOW_MISSING := true
+BOARD_VENDOR_KERNEL_MODULES_LOAD := $(shell cat $(DEVICE_PATH)/configs/modprobe/modules.load)
 BOARD_VENDOR_RAMDISK_KERNEL_MODULES_LOAD := $(shell cat $(DEVICE_PATH)/configs/modprobe/modules.load.ramdisk)
 BOOT_KERNEL_MODULES_FINDER := $(DEVICE_PATH)/configs/kernel/boot_kernel_modules_finder.sh
 TARGET_AUTO_COLLECT_KERNEL_MODULE_DEPS := true
