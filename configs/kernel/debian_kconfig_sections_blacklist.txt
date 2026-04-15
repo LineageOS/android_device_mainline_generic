@@ -1,0 +1,16 @@
+arch/
+block/
+crypto/
+drivers/android/
+drivers/md/
+drivers/staging/android/
+drivers/usb/gadget/
+fs/erofs/
+fs/ext4/
+fs/f2fs/
+fs/overlayfs/
+init/
+kernel/
+mm/
+security/
+usr/

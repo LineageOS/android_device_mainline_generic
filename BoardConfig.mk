@@ -71,9 +71,10 @@ $(call soong_config_set,minigbm_upstream,platform,all)
 $(call soong_config_set_bool,drmfb_composer,uses_minigbm,true)
 
 # Kernel
+TARGET_KERNEL_CONFIG := gki_defconfig
 TARGET_KERNEL_CONFIG_EXT := \
-    $(DEVICE_PATH)/configs/kernel/debian.config \
-    $(DEVICE_PATH)/configs/kernel/fix-build.config \
+    $(PRODUCT_OUT)/obj/KCONFIG_OBJ/debian-filtered.config \
+    kernel/mainline/configs/fragments/y/fbcon.config \
     $(DEVICE_PATH)/configs/kernel/customizations.config
 TARGET_KERNEL_SOURCE ?= kernel/mainline/android-mainline
 
