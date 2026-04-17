@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "73ab08af_86463fe8",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 32245
+      },
+      "writtenOn": "2026-04-17T18:43:57Z",
+      "side": 1,
+      "message": "overlay_remounter can\u0027t unmount it, and then kernel panic occurs",
+      "revId": "49a879b7a664995c5c5405c4a91cc3ca3b041682",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
