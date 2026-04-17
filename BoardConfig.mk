@@ -36,11 +36,6 @@ BOARD_KERNEL_CMDLINE := \
     mitigations=off \
     rdinit=/system/bin/generic_init
 
-ifneq ($(TARGET_LINUX_FIRMWARE_REPO),)
-BOARD_KERNEL_CMDLINE += \
-    androidboot.mount_firmware=true
-endif
-
 # Filesystem
 TARGET_USERIMAGES_SPARSE_EXT_DISABLED := true
 TARGET_USERIMAGES_USE_F2FS := true
