@@ -16,9 +16,12 @@
 
 #include "modalias_handler.h"
 
+#include <chrono>
 #include <string>
+#include <thread>
 #include <vector>
 
+#include <android-base/logging.h>
 #include <modprobe/modprobe.h>
 #include <modprobe/module_dependency_graph.h>
 #include <modprobe/utils.h>
@@ -26,16 +29,23 @@
 namespace android {
 namespace init {
 
-ModaliasHandler::ModaliasHandler(const std::vector<std::string>& base_paths)
-    : ModaliasHandler(ModuleConfig::Parse(base_paths)) {}
+ModaliasHandler::ModaliasHandler(const std::vector<std::string>& base_paths,
+                                 unsigned int delay)
+    : ModaliasHandler(ModuleConfig::Parse(base_paths), delay) {}
 
-ModaliasHandler::ModaliasHandler(ModuleConfig config)
+ModaliasHandler::ModaliasHandler(ModuleConfig config,
+                                 unsigned int delay)
     : module_options_(config.module_options),
       dependency_graph_(config),
-      modprobe_(std::move(config)) {}
+      modprobe_(std::move(config)),
+      delay_(delay) {}
 
 void ModaliasHandler::HandleUevent(const Uevent& uevent) {
     if (uevent.modalias.empty()) return;
+    if (delay_) {
+        LOG(INFO) << "Delay for " << std::to_string(delay_) << " ms before LoadWithAliases(" << uevent.modalias << ")";
+        std::this_thread::sleep_for(std::chrono::milliseconds(delay_));
+    }
     modprobe_.LoadWithAliases(uevent.modalias, true);
 }
 
@@ -50,6 +60,10 @@ void ModaliasHandler::EnqueueUevent(const Uevent& uevent, ThreadPool& thread_poo
 
 void ModaliasHandler::EnqueueModule(ThreadPool& thread_pool, const std::string& module) {
     thread_pool.Enqueue(kPriorityModalias, [this, &thread_pool, module]() {
+        if (delay_) {
+            LOG(INFO) << "Delay for " << std::to_string(delay_) << " ms before InitModule(" << module << ")";
+            std::this_thread::sleep_for(std::chrono::milliseconds(delay_));
+        }
         android::base::Result<void> res = modprobe::InitModule(module, module_options_);
         if (res.ok() || res.error().code() == EEXIST) {
             dependency_graph_.MarkModuleLoaded(module);
