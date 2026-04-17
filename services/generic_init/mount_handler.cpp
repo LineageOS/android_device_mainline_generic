@@ -82,7 +82,7 @@ using BlockDevices = std::unordered_map<std::string, std::shared_ptr<BlockDevice
 std::shared_ptr<BlockDevices> block_devices;
 
 bool need_android_dir = false;
-bool need_firmware_dir = false;
+bool need_firmware_dir = true;
 bool need_mount_cache = false;
 
 constexpr char kMountOptsRo[] = "";
@@ -171,7 +171,7 @@ const std::unordered_map<std::string, MountUserdataParam> kStringToMountUserdata
     {"tmpfs", MountUserdataParam::TMPFS},
 };
 
-bool param_mount_firmware = false;
+bool param_mount_firmware = true;
 MountSystemParam param_mount_system = MountSystemParam::STANDARD_PARTITIONS_WITH_PARTNAME;
 MountUserdataParam param_mount_userdata = MountUserdataParam::STANDARD_PARTITIONS_WITH_PARTNAME;
 
@@ -235,9 +235,9 @@ void ParseConfig(void) {
 
     ret = fs_mgr_get_boot_config(kMountFirmwareParam, &tmp);
     if (ret) {
-        if (tmp == "true") {
-            need_firmware_dir = true;
-            param_mount_firmware = true;
+        if (tmp == "false") {
+            need_firmware_dir = false;
+            param_mount_firmware = false;
         }
     }
 
