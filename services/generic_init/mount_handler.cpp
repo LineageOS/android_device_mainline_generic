@@ -758,15 +758,19 @@ void OnPostBlockDevices(void) {
         }
 
         FstabEntry entry = {
-            .blk_device = firmware_dir_path,
+            .blk_device = "overlay",
             .mount_point = "/vendor/firmware",
-            .fs_type = "none",
-            .flags = MS_BIND,
+            .fs_type = "overlay",
+            .flags = MS_RDONLY,
             .fs_mgr_flags = {
                 .no_fail = true,
                 .first_stage_mount = true
             }
         };
+
+        entry.lowerdir = firmware_dir_path + ":/vendor/firmware";
+        entry.fs_options = "lowerdir=" + entry.lowerdir;
+
         fstab.push_back(std::move(entry));
     }
 
