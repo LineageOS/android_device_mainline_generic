@@ -4,6 +4,13 @@
 //
 
 prebuilt_etc {
+    name: "console_override.rc",
+    src: "console_override.rc",
+    sub_dir: "overlay-product-etc-init",
+    vendor: true,
+}
+
+prebuilt_etc {
     name: "device_generic_settings.rc",
     src: "device_generic_settings.rc",
     sub_dir: "overlay-product-etc-init",
