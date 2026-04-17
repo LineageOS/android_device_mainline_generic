@@ -32,7 +32,7 @@ namespace init {
 
 class ModaliasHandler : public UeventHandler {
   public:
-    ModaliasHandler(const std::vector<std::string>&);
+    ModaliasHandler(const std::vector<std::string>&, unsigned int delay = 0);
     virtual ~ModaliasHandler() = default;
 
     void HandleUevent(const Uevent& uevent) override;
@@ -41,13 +41,14 @@ class ModaliasHandler : public UeventHandler {
     void EnqueueUevent(const Uevent& uevent, ThreadPool& thread_pool) override;
 
   private:
-    ModaliasHandler(ModuleConfig config);
+    ModaliasHandler(ModuleConfig config, unsigned int delay = 0);
 
     void EnqueueModule(ThreadPool& thread_pool, const std::string& module);
 
     std::unordered_map<std::string, std::string> module_options_;
     modprobe::ModuleDependencyGraph dependency_graph_;
     Modprobe modprobe_;
+    unsigned int delay_;
 };
 
 }  // namespace init
