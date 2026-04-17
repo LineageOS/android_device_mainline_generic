@@ -21,9 +21,12 @@ BOOTMGR_ANDROID_DISTRIBUTION_NAME ?= Android $(PLATFORM_VERSION_LAST_STABLE) $(B
 BOOTMGR_ARTIFACT_FILENAME_PREFIX ?= Android-$(PLATFORM_VERSION_LAST_STABLE)-$(BUILD_ID)-$(LOCAL_BUILD_DATE)-$(TARGET_PRODUCT)
 endif
 
+LIVEISOIMAGE_ANDROID_DIR_NAME := android-$(TARGET_DEVICE)-live
+
 # $(1): path to boot manager config file
 define process-bootmgr-cfg-common
 	sed -i "s|@BOOTMGR_ANDROID_DISTRIBUTION_NAME@|$(BOOTMGR_ANDROID_DISTRIBUTION_NAME)|g" $(1)
+	sed -i "s|@LIVEISOIMAGE_ANDROID_DIR_NAME@|$(LIVEISOIMAGE_ANDROID_DIR_NAME)|g" $(1)
 	sed -i "s|@STRIPPED_BOARD_KERNEL_CMDLINE@|$(subst ;,\\\;,$(strip $(BOARD_KERNEL_CMDLINE)))|g" $(1)
 	sed -i "s|@STRIPPED_BOARD_KERNEL_CMDLINE_SERIAL_CONSOLE@|$(subst ;,\\\;,$(strip $(BOARD_KERNEL_CMDLINE_SERIAL_CONSOLE)))|g" $(1)
 endef
@@ -60,9 +63,9 @@ GRUB_WORKDIR_LIVE := $(GRUB_WORKDIR_BASE)/live
 # $(1): output file
 define make-liveisoimage-target
 	rm -rf $(GRUB_WORKDIR_LIVE)
-	mkdir -p $(GRUB_WORKDIR_LIVE)/fsroot/android $(GRUB_WORKDIR_LIVE)/fsroot/boot/grub
+	mkdir -p $(GRUB_WORKDIR_LIVE)/fsroot/$(LIVEISOIMAGE_ANDROID_DIR_NAME) $(GRUB_WORKDIR_LIVE)/fsroot/boot/grub
 	$(foreach file,$(INSTALLED_LIVEISOIMAGE_TARGET_INCLUDE_FILES),\
-		ln $(file) $(GRUB_WORKDIR_LIVE)/fsroot/android/;)
+		ln $(file) $(GRUB_WORKDIR_LIVE)/fsroot/$(LIVEISOIMAGE_ANDROID_DIR_NAME)/;)
 
 	cat $(TARGET_GRUB_LIVE_CONFIGS) > $(GRUB_WORKDIR_LIVE)/fsroot/boot/grub/grub.cfg
 	$(call process-bootmgr-cfg-common,$(GRUB_WORKDIR_LIVE)/fsroot/boot/grub/grub.cfg)
