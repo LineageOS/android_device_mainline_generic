@@ -3,6 +3,15 @@ block/
 crypto/
 drivers/android/
 drivers/md/
+drivers/platform/x86/Kconfig
+drivers/platform/x86/dell/Kconfig
+drivers/platform/x86/hp/Kconfig
+drivers/platform/x86/lenovo/Kconfig
+drivers/platform/x86/siemens/Kconfig
+drivers/platform/x86/tuxedo/Kconfig
+drivers/platform/x86/tuxedo/nb04/Kconfig
+drivers/platform/x86/uniwill/Kconfig
+drivers/platform/x86/x86-android-tablets/Kconfig
 drivers/staging/android/
 drivers/usb/gadget/
 fs/erofs/
