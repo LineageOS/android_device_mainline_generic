@@ -745,6 +745,12 @@ void OnPostBlockDevices(void) {
         }
     }
 
+    if (!addon_fstab.empty()) {
+        for (auto& entry : addon_fstab) {
+            fstab.push_back(std::move(entry));
+        }
+    }
+
     if (need_firmware_dir) {
         std::shared_ptr<BlockDeviceInfo> bdinfo = block_device_for_firmware_dir;
         if (bdinfo == block_device_for_android_dir) {
@@ -774,12 +780,6 @@ void OnPostBlockDevices(void) {
     // Allowing live boot users to eject the boot media afterwards
     if (umount(kAndroidMountTarget.c_str()) == 0) {
         PLOG(INFO) << "umount " << kAndroidMountTarget << " successfully";
-    }
-
-    if (!addon_fstab.empty()) {
-        for (auto& entry : addon_fstab) {
-            fstab.push_back(std::move(entry));
-        }
     }
 
     for (const auto& entry : fstab) {
