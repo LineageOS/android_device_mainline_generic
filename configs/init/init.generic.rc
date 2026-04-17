@@ -25,6 +25,7 @@ service console_ttyS0 /system/bin/sh
     seclabel u:r:su:s0
     setenv HOSTNAME console
     shutdown critical
+    oneshot
 
 on init
     start console_hvc0
