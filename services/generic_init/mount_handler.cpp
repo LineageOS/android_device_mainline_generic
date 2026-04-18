@@ -759,7 +759,7 @@ void OnPostBlockDevices(void) {
 
         FstabEntry entry = {
             .blk_device = firmware_dir_path,
-            .mount_point = "/vendor/firmware",
+            .mount_point = "/mnt/vendor/firmware",
             .fs_type = "none",
             .flags = MS_BIND,
             .fs_mgr_flags = {
