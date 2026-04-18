@@ -12,6 +12,7 @@ TARGET_CAMERA_PROVIDER_HAL := external
 TARGET_ENABLE_LOGCAT_TO_SERIAL := true
 TARGET_GRAPHICS_ALLOCATOR_HAL := minigbm-upstream
 TARGET_GRAPHICS_COMPOSER_HAL := custom
+TARGET_HOSTAPD_AND_WPA_SUPPLICANT_FORM := legacy
 TARGET_MESA_DO_NOT_SET_AS_DEFAULT := true
 TARGET_SUPPORTS_SUSPEND := false
 TARGET_USES_TABLET_INPUT_AS_TOUCHSCREEN := true
@@ -172,3 +173,7 @@ PRODUCT_COPY_FILES += \
 
 # Virtualization
 $(call inherit-product, packages/modules/Virtualization/apex/product_packages.mk)
+
+# Wi-Fi
+PRODUCT_COPY_FILES += \
+    external/wpa_supplicant_8/wpa_supplicant/wpa_supplicant_template.conf:$(TARGET_COPY_OUT_VENDOR)/etc/wifi/wpa_supplicant.conf
