@@ -94,7 +94,7 @@ vfat"
 
 for mod in $MODULES; do
     mod_filename="${mod}.ko"
-    mod_find=$(find $KERNEL_MODULES_OUT -name $mod_filename)
+    mod_find=$(find ${KERNEL_MODULES_OUT}/kernel/ -name $mod_filename)
     if [ "$mod_find" ]; then
         RESULT+=" $(basename $mod_find)"
     else
@@ -103,7 +103,7 @@ for mod in $MODULES; do
 done
 
 for dir in $MODULES_DIRS; do
-    dir_path="${KERNEL_MODULES_OUT}/${dir}"
+    dir_path="${KERNEL_MODULES_OUT}/kernel/${dir}"
     if ! [ -d "$dir_path" ]; then continue; fi
 
     mod_finds=$(find $dir_path -name '*.ko')
