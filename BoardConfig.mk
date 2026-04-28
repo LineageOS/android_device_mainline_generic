@@ -45,8 +45,6 @@ TARGET_USERIMAGES_USE_EXT4 := true
 # Graphics (Mesa)
 BOARD_MESA3D_BUILD_LIBGBM := true
 BOARD_MESA3D_GALLIUM_DRIVERS += \
-    crocus \
-    iris \
     nouveau \
     radeonsi \
     r300 \
@@ -55,8 +53,6 @@ BOARD_MESA3D_GALLIUM_DRIVERS += \
     virgl
 BOARD_MESA3D_VULKAN_DRIVERS += \
     amd \
-    intel \
-    intel_hasvk \
     nouveau \
     virtio
 

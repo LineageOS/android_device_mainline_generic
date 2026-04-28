@@ -19,6 +19,14 @@ BOARD_KERNEL_CMDLINE_SERIAL_CONSOLE := \
     8250.nr_uarts=1 \
     console=ttyS0
 
+# Graphics (Mesa)
+BOARD_MESA3D_GALLIUM_DRIVERS += \
+    crocus \
+    iris
+BOARD_MESA3D_VULKAN_DRIVERS += \
+    intel \
+    intel_hasvk
+
 # Kernel
 BOARD_KERNEL_IMAGE_NAME := bzImage
 TARGET_KERNEL_CONFIG_EXT := \
