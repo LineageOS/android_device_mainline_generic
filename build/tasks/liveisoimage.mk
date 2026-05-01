@@ -37,7 +37,9 @@ INSTALLED_LIVEISOIMAGE_TARGET_INCLUDE_FILES := \
     $(PRODUCT_OUT)/kernel \
     $(PRODUCT_OUT)/ramdisk.img \
     $(PRODUCT_OUT)/system.img \
-    $(PRODUCT_OUT)/vendor.img
+    $(PRODUCT_OUT)/system_dlkm.img \
+    $(PRODUCT_OUT)/vendor.img \
+    $(PRODUCT_OUT)/vendor_dlkm.img
 
 INSTALLED_LIVEISOIMAGE_TARGET_DEPS := \
 	$(INSTALLED_LIVEISOIMAGE_TARGET_INCLUDE_FILES)
