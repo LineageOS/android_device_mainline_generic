@@ -91,6 +91,8 @@ overlay
 squashfs
 udf
 vfat"
+MODULES_DIRS+="
+fs/nls"
 
 for mod in $MODULES; do
     mod_filename="${mod}.ko"
