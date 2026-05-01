@@ -18,15 +18,8 @@ package {
 }
 
 runtime_resource_overlay {
-    name: "CuttlefishWifiOverlay",
+    name: "MainlineGenericWifiOverlay",
     resource_dirs: ["res"],
     vendor: true,
     sdk_version: "current",
-}
-
-override_runtime_resource_overlay {
-    name: "CuttlefishWifiOverlayGoogle",
-    base: "CuttlefishWifiOverlay",
-    package_name: "com.google.android.wifi.resources.cf",
-    target_package_name: "com.google.android.wifi.resources",
 }

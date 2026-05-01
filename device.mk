@@ -145,6 +145,9 @@ DEVICE_PACKAGE_OVERLAYS += \
     $(DEVICE_PATH)/overlays/overlay
 
 PRODUCT_PACKAGES += \
+    MainlineGenericWifiOverlay
+
+PRODUCT_PACKAGES += \
     AodDefaultOnOverlay
 
 # Permissions

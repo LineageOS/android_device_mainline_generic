@@ -18,7 +18,7 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <!-- True if the firmware supports connected MAC randomization -->
-    <bool name="config_wifi_connected_mac_randomization_supported">true</bool>
+    <bool name="config_wifi_connected_mac_randomization_supported">false</bool>
     <bool name="config_wifiAllowNonPersistentMacRandomizationOnOpenSsids">true</bool>
 
     <!-- True if the firmware supports p2p MAC randomization -->
@@ -27,7 +27,7 @@
     <bool name="config_wifi_p2p_mac_randomization_supported">false</bool>
 
     <!-- True if the firmware supports ap MAC randomization -->
-    <bool name="config_wifi_ap_mac_randomization_supported">true</bool>
+    <bool name="config_wifi_ap_mac_randomization_supported">false</bool>
 
     <bool name ="config_wifi5ghzSupport">true</bool>
 
