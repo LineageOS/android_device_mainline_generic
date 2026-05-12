@@ -67,6 +67,7 @@ struct BlockDeviceInfo {
     bool is_partition;
     bool rw;
     std::string fs_type;
+    std::string mountopts;
 
     std::string android_system_partition;
     std::vector<std::string> android_system_partition_have_subdirs;
@@ -310,6 +311,103 @@ std::string TryMountAndReturnFsType(const std::string& devpath, unsigned long mo
     return "";
 }
 
+void ParseBlockDevice_CheckDirs(BlockDeviceInfo* info) {
+    std::string& devpath = info->devpath;
+
+    if (!info->android_system_partition.empty()) return;
+
+    std::list<std::string> possible_android_dirs = {
+        config_android_dir, "android", "boot/android"
+    };
+    for (const auto& android_dir : possible_android_dirs) {
+        if (android_dir.empty()) continue;
+        if (TryAccessDir(kTryMountTarget + "/" + android_dir)) {
+            LOG(INFO) << "Block device " << devpath << " have android directory: " << android_dir;
+            info->have_android_dir = android_dir;
+            break;
+        }
+    }
+
+    if (!info->have_android_dir.empty()) {
+        for (const auto& entry : fs::directory_iterator(kTryMountTarget + "/" + info->have_android_dir)) {
+            std::string name = entry.path().filename();
+            if (entry.is_regular_file() && EndsWithIgnoreCase(name, kImageSuffix)) {
+                if (StartsWithIgnoreCase(name, "initrd") || StartsWithIgnoreCase(name, "ramdisk")) continue;
+                info->android_dir_have_images.push_back(name);
+            } else if (entry.is_directory() && name != "firmware") {
+                info->android_dir_have_subdirs.push_back(name);
+            }
+        }
+    }
+
+    std::list<std::string> possible_firmware_dirs = {
+        info->have_android_dir.empty() ? "" : info->have_android_dir + "/firmware",
+        "lib/firmware", "linux-firmware", "firmware"
+    };
+    for (const auto& fw_dir : possible_firmware_dirs) {
+        if (fw_dir.empty()) continue;
+        if (TryAccessDir(kTryMountTarget + "/" + fw_dir)) {
+            LOG(INFO) << "Block device " << devpath << " have firmware directory: " << fw_dir;
+            info->have_firmware_dir = fw_dir;
+            break;
+        }
+    }
+}
+
+bool ParseApfsBlockDevice(BlockDeviceInfo* info) {
+    bool success;
+    int ret, save_errno;
+    unsigned int apfs_vol = 0;
+    unsigned long mountflags = MS_RDONLY;
+    std::string mountopts;
+    std::string& devpath = info->devpath;
+
+    for (apfs_vol = 0; apfs_vol < 20; ++apfs_vol) {
+        errno = 0;
+        mountopts = "vol=" + std::to_string(apfs_vol);
+        ret = mount(devpath.c_str(), kTryMountTarget.c_str(), "apfs", mountflags, mountopts.c_str());
+        save_errno = errno;
+        if (ret) {
+            if (save_errno == ENODEV) {
+                LOG(ERROR) << "APFS filesystem is likely unsupported";
+                return false;
+            }
+
+            // In this case, the filesystem is likely not APFS
+            if (save_errno == EINVAL && apfs_vol == 0) return false;
+
+            PLOG(ERROR) << "Unable to try to mount APFS filesystem"
+                        << " volume " << std::to_string(apfs_vol)
+                        << " from " << devpath;
+        } else {
+            LOG(INFO) << "Mounted APFS filesystem volume " << std::to_string(apfs_vol)
+                      << " from " << devpath;
+
+            ParseBlockDevice_CheckDirs(info);
+            success = !info->have_android_dir.empty();
+            if (success) break;
+
+            if (umount(kTryMountTarget.c_str()) == -1) {
+                PLOG(FATAL) << "Failed to umount " << kTryMountTarget << " from block device " << devpath;
+            }
+            info->have_firmware_dir.clear();
+            continue;
+        }
+    }
+
+    if (!success) return false;
+
+    info->fs_type = "apfs";
+    info->mountopts = "vol=" + std::to_string(apfs_vol);
+    info->rw = false;
+
+    // Cleanup and exit
+    if (umount(kTryMountTarget.c_str()) == -1) {
+        PLOG(FATAL) << "Failed to umount " << kTryMountTarget << " from block device " << devpath;
+    }
+    return success;
+}
+
 void ParseBlockDevice(BlockDeviceInfo* info) {
     unsigned long mountflags = MS_RDONLY;
     std::string tmp_path;
@@ -366,50 +464,15 @@ void ParseBlockDevice(BlockDeviceInfo* info) {
         }
     }
 
-    if (info->android_system_partition.empty()) {
-        std::list<std::string> possible_android_dirs = {
-            config_android_dir, "android", "boot/android"
-        };
-        for (const auto& android_dir : possible_android_dirs) {
-            if (android_dir.empty()) continue;
-            if (TryAccessDir(kTryMountTarget + "/" + android_dir)) {
-                LOG(INFO) << "Block device " << devpath << " have android directory: " << android_dir;
-                info->have_android_dir = android_dir;
-                break;
-            }
-        }
-
-        if (!info->have_android_dir.empty()) {
-            for (const auto& entry : fs::directory_iterator(kTryMountTarget + "/" + info->have_android_dir)) {
-                std::string name = entry.path().filename();
-                if (entry.is_regular_file() && EndsWithIgnoreCase(name, kImageSuffix)) {
-                    if (StartsWithIgnoreCase(name, "initrd") || StartsWithIgnoreCase(name, "ramdisk")) continue;
-                    info->android_dir_have_images.push_back(name);
-                } else if (entry.is_directory() && name != "firmware") {
-                    info->android_dir_have_subdirs.push_back(name);
-                }
-            }
-        }
-
-        std::list<std::string> possible_firmware_dirs = {
-            info->have_android_dir.empty() ? "" : info->have_android_dir + "/firmware",
-            "lib/firmware", "linux-firmware", "firmware"
-        };
-        for (const auto& fw_dir : possible_firmware_dirs) {
-            if (fw_dir.empty()) continue;
-            if (TryAccessDir(kTryMountTarget + "/" + fw_dir)) {
-                LOG(INFO) << "Block device " << devpath << " have firmware directory: " << fw_dir;
-                info->have_firmware_dir = fw_dir;
-                break;
-            }
-        }
-    }
+    ParseBlockDevice_CheckDirs(info);
 
     // Try remount as RW
     mountflags &= ~MS_RDONLY;
     mountflags |= MS_REMOUNT;
     info->rw = mount(NULL, kTryMountTarget.c_str(), NULL, mountflags, kMountOptsRw) == 0;
     LOG(INFO) << "Block device " << devpath << " can be mounted as " << (info->rw ? "read-write" : "read-only");
+
+    info->mountopts = info->rw ? kMountOptsRw : kMountOptsRo;
 
     // Cleanup and exit
     if (umount(kTryMountTarget.c_str()) == -1) {
@@ -534,7 +597,7 @@ void OnBlockDeviceAdd(const android::init::Uevent& uevent, const std::string& de
     info.partuuid = uevent.partition_uuid;
     info.links = links;
     info.is_partition = std::isdigit(static_cast<unsigned char>(info.devname.back()));
-    ParseBlockDevice(&info);
+    if (!ParseApfsBlockDevice(&info)) ParseBlockDevice(&info);
     block_devices->insert({devpath, std::make_shared<BlockDeviceInfo>(info)});
     UpdateMountInfo(block_devices->at(devpath));
 }
@@ -596,7 +659,7 @@ void OnPostBlockDevices(void) {
 
     if (need_android_dir) {
         std::shared_ptr<BlockDeviceInfo> bdinfo = block_device_for_android_dir;
-        ret = mount(bdinfo->devpath.c_str(), kAndroidMountTarget.c_str(), bdinfo->fs_type.c_str(), bdinfo->rw ? 0 : MS_RDONLY, bdinfo->rw ? kMountOptsRw : kMountOptsRo);
+        ret = mount(bdinfo->devpath.c_str(), kAndroidMountTarget.c_str(), bdinfo->fs_type.c_str(), bdinfo->rw ? 0 : MS_RDONLY, bdinfo->mountopts.c_str());
         if (ret) {
             PLOG(FATAL) << "Unable to mount block device for android dir";
         }
@@ -750,7 +813,7 @@ void OnPostBlockDevices(void) {
         if (bdinfo == block_device_for_android_dir) {
             firmware_dir_path = kAndroidMountTarget + "/" + bdinfo->have_firmware_dir;
         } else {
-            ret = mount(bdinfo->devpath.c_str(), kFirmwareMountTarget.c_str(), bdinfo->fs_type.c_str(), MS_RDONLY, kMountOptsRo);
+            ret = mount(bdinfo->devpath.c_str(), kFirmwareMountTarget.c_str(), bdinfo->fs_type.c_str(), MS_RDONLY, bdinfo->mountopts.c_str());
             if (ret) {
                 PLOG(FATAL) << "Unable to mount block device for firmware dir";
             }
