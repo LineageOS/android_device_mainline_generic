@@ -523,26 +523,28 @@ int FirstStageMain(int argc, char** argv) {
         setenv("INIT_FORCE_DEBUGGABLE", "true", 1);
     }
 
-    // Kernel module loading and partition mounting are handled here
-    MountHandler::OnPreBlockDevices();
-    ueventd_main(ParseConfig({"/system/etc/ueventd.ramdisk.rc"}), true);
+    if (boot_mode != BootMode::RECOVERY_MODE) {
+        // Kernel module loading and partition mounting are handled here
+        MountHandler::OnPreBlockDevices();
+        ueventd_main(ParseConfig({"/system/etc/ueventd.ramdisk.rc"}), true);
 
-    mkdir("/first_stage_ramdisk", 0755);
-    // SwitchRoot() must be called with a mount point as the target, so we bind mount the
-    // target directory to itself here.
-    if (mount("/first_stage_ramdisk", "/first_stage_ramdisk", nullptr, MS_BIND, nullptr) != 0) {
-        PLOG(FATAL) << "Could not bind mount /first_stage_ramdisk to itself";
+        mkdir("/first_stage_ramdisk", 0755);
+        // SwitchRoot() must be called with a mount point as the target, so we bind mount the
+        // target directory to itself here.
+        if (mount("/first_stage_ramdisk", "/first_stage_ramdisk", nullptr, MS_BIND, nullptr) != 0) {
+            PLOG(FATAL) << "Could not bind mount /first_stage_ramdisk to itself";
+        }
+        SwitchRoot("/first_stage_ramdisk");
+
+        MountHandler::OnPostBlockDevices();
+
+        if (!LoadKernelModules(boot_mode, false,
+                            want_parallel, "/vendor/lib/modules")) {
+            LOG(ERROR) << "Failed to load kernel modules from vendor partition";
+        }
+
+        ueventd_main(ParseConfig({"/system/etc/ueventd.rc"}), false);
     }
-    SwitchRoot("/first_stage_ramdisk");
-
-    MountHandler::OnPostBlockDevices();
-
-    if (!LoadKernelModules(boot_mode, false,
-                           want_parallel, "/vendor/lib/modules")) {
-        LOG(ERROR) << "Failed to load kernel modules from vendor partition";
-    }
-
-    ueventd_main(ParseConfig({"/system/etc/ueventd.rc"}), false);
 
     struct stat new_root_info {};
     if (stat("/", &new_root_info) != 0) {
