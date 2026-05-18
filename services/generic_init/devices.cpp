@@ -431,7 +431,7 @@ void DeviceHandler::MakeDevice(const std::string& path, bool block, int major, i
     }
     /* If the node already exists update its SELinux label and the file mode to handle cases when
      * it was created with the wrong context and file mode during coldboot procedure. */
-    LOG(INFO) << "Making device " << path;
+    if (block) LOG(INFO) << "Making block device " << path;
     if (mknod(path.c_str(), mode, dev) && (errno == EEXIST)) {
         struct stat s;
         if (stat(path.c_str(), &s) == 0) {
