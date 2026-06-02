@@ -63,8 +63,12 @@ $(call soong_config_set,minigbm_upstream,platform,all)
 $(call soong_config_set_bool,drmfb_composer,uses_minigbm,true)
 
 # Kernel
+ifneq ($(MAINLINE_GENERIC_KERNEL_BOARDCONFIG_MK),)
+include $(MAINLINE_GENERIC_KERNEL_BOARDCONFIG_MK)
+else
 TARGET_KERNEL_CONFIG := gki_defconfig
 TARGET_KERNEL_SOURCE ?= kernel/mainline/android-mainline
+endif
 
 # Kernel modules
 BOARD_KERNEL_MODULES_LOAD_ALLOW_MISSING := true

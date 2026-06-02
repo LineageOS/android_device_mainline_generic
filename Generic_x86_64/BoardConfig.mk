@@ -28,6 +28,7 @@ BOARD_MESA3D_VULKAN_DRIVERS += \
     intel_hasvk
 
 # Kernel
+ifeq ($(MAINLINE_GENERIC_KERNEL_BOARDCONFIG_MK),)
 BOARD_KERNEL_IMAGE_NAME := bzImage
 TARGET_KERNEL_CONFIG_EXT := \
     $(TARGET_DEVICE_PATH)/configs/kernel/pre-debian.config \
@@ -35,3 +36,4 @@ TARGET_KERNEL_CONFIG_EXT := \
     $(DEVICE_PATH)/configs/kernel/fix-build.config \
     kernel/mainline/configs/fragments/y/fbcon.config \
     $(DEVICE_PATH)/configs/kernel/customizations.config
+endif
