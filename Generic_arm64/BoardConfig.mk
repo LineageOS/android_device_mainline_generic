@@ -17,6 +17,7 @@ TARGET_CPU_VARIANT := generic
 TARGET_GRUB_ARCH := arm64-efi
 
 # Kernel
+ifeq ($(MAINLINE_GENERIC_KERNEL_BOARDCONFIG_MK),)
 BOARD_KERNEL_IMAGE_NAME := Image
 TARGET_KERNEL_CONFIG_EXT := \
     $(TARGET_DEVICE_PATH)/configs/kernel/pre-debian.config \
@@ -24,3 +25,4 @@ TARGET_KERNEL_CONFIG_EXT := \
     $(DEVICE_PATH)/configs/kernel/fix-build.config \
     kernel/mainline/configs/fragments/y/fbcon.config \
     $(DEVICE_PATH)/configs/kernel/customizations.config
+endif
