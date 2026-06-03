@@ -173,6 +173,8 @@ int ueventd_main(const UeventdConfiguration& ueventd_configuration, bool first_r
 
     LOG(INFO) << "generic_init ueventd started!";
 
+    MountHandler::MarkUeventdColdBootDone(false);
+
     std::string tmp;
     unsigned int modalias_handling_delay_ms = 0;
     if (fs_mgr_get_boot_config("modalias_handling_delay_ms", &tmp)) {
@@ -226,6 +228,8 @@ int ueventd_main(const UeventdConfiguration& ueventd_configuration, bool first_r
     for (auto& uevent_handler : uevent_handlers) {
         uevent_handler->ColdbootDone();
     }
+
+    MountHandler::MarkUeventdColdBootDone(true);
 
     // We use waitpid() in ColdBoot, so we can't ignore SIGCHLD until now.
     signal(SIGCHLD, SIG_IGN);

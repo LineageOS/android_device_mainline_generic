@@ -51,6 +51,8 @@ using std::chrono_literals::operator""s;
 
 namespace {
 
+bool ueventd_cold_boot_done = false;
+
 std::string config_android_dir;
 
 struct BlockDeviceInfo {
@@ -143,6 +145,7 @@ constexpr char kAndroidDirParam[] = "android_dir";
 constexpr char kMountFirmwareParam[] = "mount_firmware";
 constexpr char kMountSystemParam[] = "mount_system";
 constexpr char kMountUserdataParam[] = "mount_userdata";
+constexpr char kSkipEarlyInitializedDrivesParam[] = "skip_early_initialized_drives";
 
 enum class MountSystemParam {
     STANDARD_PARTITIONS_WITH_PARTNAME = 0,
@@ -173,6 +176,7 @@ const std::unordered_map<std::string, MountUserdataParam> kStringToMountUserdata
 };
 
 bool param_mount_firmware = true;
+bool param_skip_early_initialized_drives = false;
 MountSystemParam param_mount_system = MountSystemParam::STANDARD_PARTITIONS_WITH_PARTNAME;
 MountUserdataParam param_mount_userdata = MountUserdataParam::STANDARD_PARTITIONS_WITH_PARTNAME;
 
@@ -233,6 +237,13 @@ void ParseConfig(void) {
         }
     }
     fs_mgr_get_boot_config(kAndroidDirParam, &config_android_dir);
+
+    ret = fs_mgr_get_boot_config(kSkipEarlyInitializedDrivesParam, &tmp);
+    if (ret) {
+        if (tmp == "true") {
+            param_skip_early_initialized_drives = true;
+        }
+    }
 
     ret = fs_mgr_get_boot_config(kMountFirmwareParam, &tmp);
     if (ret) {
@@ -581,6 +592,11 @@ void OnBlockDeviceAdd(const android::init::Uevent& uevent, const std::string& de
         return;
     }
 
+    if (param_skip_early_initialized_drives && !ueventd_cold_boot_done) {
+        LOG(INFO) << "Skip early initialized drive: " << devpath;
+        return;
+    }
+
     static const std::list<std::string> kIgnoredDevnamePrefixs = {
         "dm-", "loop", "ram", "zram"
     };
@@ -603,6 +619,10 @@ void OnBlockDeviceAdd(const android::init::Uevent& uevent, const std::string& de
 }
 
 // TODO: Handle block device removal?
+
+void MarkUeventdColdBootDone(bool state) {
+    ueventd_cold_boot_done = state;
+}
 
 bool CanQuitUeventd(bool print_log) {
     bool ret = true;
