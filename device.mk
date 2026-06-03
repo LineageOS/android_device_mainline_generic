@@ -120,6 +120,7 @@ PRODUCT_PACKAGES += \
     hardware_detect \
     overlay_remounter_override
 
+$(call soong_config_set,libinit,vendor_init_lib,//$(DEVICE_PATH):init_mainline_generic)
 $(call soong_config_set,mainline_common_libinit,set_properties_from,dmi_id)
 
 # Input
