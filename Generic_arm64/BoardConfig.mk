@@ -16,6 +16,9 @@ TARGET_CPU_VARIANT := generic
 # Boot manager
 TARGET_GRUB_ARCH := arm64-efi
 
+# Graphics allocator (minigbm)
+$(call soong_config_set,minigbm_upstream,platform,all_arm)
+
 # Kernel
 ifeq ($(MAINLINE_GENERIC_KERNEL_BOARDCONFIG_MK),)
 BOARD_KERNEL_IMAGE_NAME := Image
