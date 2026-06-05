@@ -16,6 +16,26 @@ TARGET_CPU_VARIANT := generic
 # Boot manager
 TARGET_GRUB_ARCH := arm64-efi
 
+# Graphics (Mesa)
+BOARD_MESA3D_GALLIUM_DRIVERS += \
+    ethosu \
+    etnaviv \
+    freedreno \
+    lima \
+    tegra \
+    v3d \
+    vc4
+#    asahi
+#    panfrost
+#    rocket
+
+BOARD_MESA3D_VULKAN_DRIVERS += \
+    broadcom \
+    freedreno
+#    asahi
+#    imagination
+#    panfrost
+
 # Graphics allocator (minigbm)
 $(call soong_config_set,minigbm_upstream,platform,all_arm)
 

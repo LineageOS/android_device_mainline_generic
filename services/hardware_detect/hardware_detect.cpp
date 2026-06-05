@@ -201,11 +201,15 @@ const std::unordered_map<HwHwc, std::string> kHwHwcMap = {
 
 enum class HwVulkan {
     Unset,
+    Asahi,
+    Broadcom,
     Freedreno,
+    Imagination,
     Intel,
     Intel_hasvk,
     Lvp,
     Nouveau,
+    Panfrost,
     Radeon,
     Virtio,
 };
@@ -215,6 +219,9 @@ const std::unordered_map<HwVulkan, std::string> kHwVulkanMap = {
         {HwVulkan::Nouveau, "nouveau"}, {HwVulkan::Radeon, "radeon"},
         {HwVulkan::Virtio, "virtio"},   {HwVulkan::Lvp, "lvp_mesa3d"},
         {HwVulkan::Freedreno, "freedreno"},
+        {HwVulkan::Asahi, "asahi"},     {HwVulkan::Broadcom, "broadcom"},
+        {HwVulkan::Imagination, "imagination"},
+        {HwVulkan::Panfrost, "panfrost"},
 };
 
 enum class UsbGadgetApex {
@@ -472,7 +479,7 @@ void OnDetectDrmSysfb(void) {
     SetupFramebufferDisplay();
 }
 
-void OnDetectUnknownGpu(void) {
+void OnDetectUnknownGpu(const std::string& gpu_name) {
     LOG(WARNING) << "GPU is unsupported, applying defaults";
 
     gGrallocHalService = GrallocHalServices::MinigbmUpstream;
@@ -480,6 +487,22 @@ void OnDetectUnknownGpu(void) {
     gHwGralloc = HwGralloc::MinigbmUpstream;
 
     gHwEgl = HwEgl::Mesa;
+
+    const std::unordered_map<std::string, HwVulkan> kGpuNameToHwVulkanMap = {
+        {"asahi", HwVulkan::Asahi},
+        // TODO: Differentiate card and render nodes
+        // card:
+        // TODO: HwVulkan::Imagination require matching card&render pair, see pvr_drm_configs[] in mesa
+        {"mediatek", HwVulkan::Imagination},
+        {"tidss", HwVulkan::Imagination},
+        // render (have no use until we check for render nodes too):
+        {"panfrost", HwVulkan::Panfrost},
+        {"panthor", HwVulkan::Panfrost},
+        {"v3d", HwVulkan::Broadcom},
+    };
+    if (kGpuNameToHwVulkanMap.contains(gpu_name)) {
+        gHwVulkan = kGpuNameToHwVulkanMap.at(gpu_name);
+    }
 }
 
 void OnDetectAmdGpu(int fd) {
@@ -780,7 +803,7 @@ int main(int, char* argv[]) {
     } else if (name == "vmwgfx") {
         OnDetectVmwgfxGpu();
     } else {
-        OnDetectUnknownGpu();
+        OnDetectUnknownGpu(name);
     }
 
     drmFreeVersion(version);
