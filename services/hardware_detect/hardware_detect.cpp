@@ -22,6 +22,7 @@
 #include <i915_drm.h>
 #include <virtgpu_drm.h>
 #include <xf86drm.h>
+#include <xf86drmMode.h>
 
 extern "C" {
 #include <freedreno_drmif.h>
@@ -481,13 +482,7 @@ void OnDetectDrmSysfb(void) {
 }
 
 void OnDetectUnknownGpu(const std::string& gpu_name) {
-    LOG(WARNING) << "GPU is unsupported, applying defaults";
-
-    gGrallocHalService = GrallocHalServices::MinigbmUpstream;
-    gHwcHalService = HwcHalServices::DrmUpstream;
-    gHwGralloc = HwGralloc::MinigbmUpstream;
-
-    gHwEgl = HwEgl::Mesa;
+    LOG(WARNING) << "GPU is not directly supported";
 
     const std::unordered_map<std::string, HwVulkan> kGpuNameToHwVulkanMap = {
         {"asahi", HwVulkan::Asahi},
@@ -506,35 +501,17 @@ void OnDetectUnknownGpu(const std::string& gpu_name) {
     }
 }
 
-void OnDetectAmdGpu(int fd) {
-    int ret;
-
-    ret = drmSetClientCap(fd, DRM_CLIENT_CAP_ATOMIC, 1);
-    if (!ret) {
-        gHwcHalService = HwcHalServices::DrmUpstream;
-    } else {
-        gHwcHalService = HwcHalServices::DrmFb;
-    }
-
+void OnDetectAmdGpu(void) {
     gMinigbmGenericBackend = MinigbmGenericBackend::DumbGeneric;
-    gGrallocHalService = GrallocHalServices::MinigbmUpstream;
-    gHwGralloc = HwGralloc::MinigbmUpstream;
-
     gGlesVersion = kGlesVersion32;
-    gHwEgl = HwEgl::Mesa;
     gHwVulkan = HwVulkan::Radeon;
 }
 
-void OnDetectIntelGpu(int fd) {
+void OnDetectIntelGpu(int card_fd) {
     int ret = 0;
-
-    gHwcHalService = HwcHalServices::DrmUpstream;
-    gGrallocHalService = GrallocHalServices::MinigbmUpstream;
-    gHwGralloc = HwGralloc::MinigbmUpstream;
 
     if (!IsForcedSwiftshader()) {
         gGlesVersion = kGlesVersion32;
-        gHwEgl = HwEgl::Mesa;
         gHwVulkan = HwVulkan::Intel;  // May get overridden later
     } else {
         UseSwiftshaderGraphics();
@@ -546,7 +523,7 @@ void OnDetectIntelGpu(int fd) {
     };
 
     get_param.param = I915_PARAM_CHIPSET_ID;
-    ret = drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &get_param);
+    ret = drmIoctl(card_fd, DRM_IOCTL_I915_GETPARAM, &get_param);
     if (!ret) {
         // Enable various workarounds
         /*
@@ -557,7 +534,6 @@ void OnDetectIntelGpu(int fd) {
             // From Intel Core to pre-Skylake (HD Graphics 510)
             // Except for Atom Processor Z36xxx/Z37xxx
             SetProperty("ro.vendor.hwc.drm.avoid_using_alpha_bits_for_framebuffer", "1");
-            SetProperty("ro.vendor.hwc.drm.disable_planes", "1");
         }
         if (value <= 0x0F33 || (value >= 0x1602 && value <= 0x162E) ||
             (value >= 0x22B0 && value <= 0x22B3)) {
@@ -570,12 +546,7 @@ void OnDetectIntelGpu(int fd) {
     }
 }
 
-void OnDetectMsmGpu(int fd) {
-    gGrallocHalService = GrallocHalServices::MinigbmUpstream;
-    gHwcHalService = HwcHalServices::DrmUpstream;
-    gHwGralloc = HwGralloc::MinigbmUpstream;
-
-    gHwEgl = HwEgl::Mesa;
+void OnDetectMsmGpu(int card_fd) {
     gHwVulkan = HwVulkan::Freedreno;
 
     if (IsForcedSwiftshader()) {
@@ -586,7 +557,7 @@ void OnDetectMsmGpu(int fd) {
     struct fd_device* dev;
     struct fd_pipe* pipe;
 
-    dev = fd_device_new(fd);
+    dev = fd_device_new(card_fd);
     if (!dev) {
         LOG(ERROR) << "fd_device_new() failed";
         goto err_fd_device_new;
@@ -623,12 +594,7 @@ err_fd_device_new:
 }
 
 void OnDetectNouveauGpu(void) {
-    gHwcHalService = HwcHalServices::DrmFb;
-    gGrallocHalService = GrallocHalServices::MinigbmUpstream;
-    gHwGralloc = HwGralloc::MinigbmUpstream;
-
     gGlesVersion = kGlesVersion31;
-    gHwEgl = HwEgl::Mesa;
     gHwVulkan = HwVulkan::Nouveau;
 }
 
@@ -637,22 +603,12 @@ void OnDetectQxlGpu(void) {
 }
 
 void OnDetectRadeonGpu(void) {
-    gHwcHalService = HwcHalServices::DrmFb;
-
     gMinigbmGenericBackend = MinigbmGenericBackend::DumbGeneric;
-    gGrallocHalService = GrallocHalServices::MinigbmUpstream;
-    gHwGralloc = HwGralloc::MinigbmUpstream;
-
     gGlesVersion = kGlesVersion31;
-    gHwEgl = HwEgl::Mesa;
 }
 
-void OnDetectVirtioGpu(int fd) {
+void OnDetectVirtioGpu(int card_fd) {
     int ret = 0;
-
-    gGrallocHalService = GrallocHalServices::MinigbmUpstream;
-    gHwcHalService = HwcHalServices::DrmUpstream;
-    gHwGralloc = HwGralloc::MinigbmUpstream;
 
     uint32_t value;
     struct drm_virtgpu_getparam get_param = {
@@ -660,7 +616,7 @@ void OnDetectVirtioGpu(int fd) {
     };
 
     get_param.param = VIRTGPU_PARAM_3D_FEATURES;
-    ret = drmIoctl(fd, DRM_IOCTL_VIRTGPU_GETPARAM, &get_param);
+    ret = drmIoctl(card_fd, DRM_IOCTL_VIRTGPU_GETPARAM, &get_param);
     if (!ret) {
         if (value) {
             gHwEgl = HwEgl::Mesa;
@@ -684,12 +640,98 @@ void OnDetectVmwgfxGpu(void) {
         // 3D acceleration does not work on VirtualBox
         SetupFramebufferDisplay();
     } else {
-        gGrallocHalService = GrallocHalServices::MinigbmUpstream;
-        gHwcHalService = HwcHalServices::DrmUpstream;
-        gHwGralloc = HwGralloc::MinigbmUpstream;
-
         gGlesVersion = kGlesVersion31;
+    }
+}
+
+bool IsDrmMultiplePlanesSupported(int fd) {
+    drmModePlaneRes* planeRes = drmModeGetPlaneResources(fd);
+    if (!planeRes) {
+        LOG(ERROR) << "Failed to get plane resources";
+        return false;
+    }
+
+    drmModeRes* res = drmModeGetResources(fd);
+    if (!res) {
+        LOG(ERROR) << "Failed to get DRM resources";
+        drmModeFreePlaneResources(planeRes);
+        return false;
+    }
+
+    bool supportsMultiplePlanes = false;
+
+    // For each CRTC, count how many planes can attach
+    for (int crtc_idx = 0; crtc_idx < res->count_crtcs; ++crtc_idx) {
+        int planeCountForCrtc = 0;
+
+        for (uint32_t i = 0; i < planeRes->count_planes; ++i) {
+            drmModePlane* plane = drmModeGetPlane(fd, planeRes->planes[i]);
+            if (!plane) continue;
+
+            if (plane->possible_crtcs & (1 << crtc_idx)) {
+                planeCountForCrtc++;
+            }
+
+            drmModeFreePlane(plane);
+        }
+
+        if (planeCountForCrtc > 1) {
+            supportsMultiplePlanes = true;
+            break;
+        }
+    }
+
+    drmModeFreeResources(res);
+    drmModeFreePlaneResources(planeRes);
+
+    return supportsMultiplePlanes;
+}
+
+void SetDefaultsForDrmDisplay(int card_fd, int render_fd) {
+    /*
+     * Gralloc
+     *
+     * What else is there other than minigbm-upstream for now?
+     * - Unmodified external/minigbm (Quite useless for a generic port)
+     * - Standalone Mesa GBM gralloc (Our minigbm currently have Mesa GBM backend)
+     * - HBM gralloc (standalone form is still a draft, minigbm backend form is used only for amdgpu for now)
+     * - DRM gralloc (RIP)
+     */
+    gGrallocHalService = GrallocHalServices::MinigbmUpstream;
+    gHwGralloc = HwGralloc::MinigbmUpstream;
+
+    /*
+     * HwComposer
+     *
+     * drmfb-composer for legacy hardware that does not support
+     * certain capabilities, according to its README
+     *
+     * drm_hwcomposer-upstream for full-fledged support
+     * (however we have some hacks in there too)
+     */
+    if (!drmSetClientCap(card_fd, DRM_CLIENT_CAP_ATOMIC, 1)) {
+        gHwcHalService = HwcHalServices::DrmUpstream;
+        if (!IsDrmMultiplePlanesSupported(card_fd)) {
+            SetProperty("ro.vendor.hwc.drm.disable_planes", "1");
+        }
+    } else {
+        gHwcHalService = HwcHalServices::DrmFb;
+    }
+
+    /*
+     * Graphics
+     *
+     * Mesa is the only one for hardware rendering
+     * Swiftshader is only for software rendering
+     *
+     * Mesa may have software rendering backend built-in, and
+     * performance wise it's bit better than Swiftshader,
+     * but compatibility wise is still not as good as Swiftshader
+     */
+    if (render_fd >= 0) {
         gHwEgl = HwEgl::Mesa;
+    } else {
+        UseSwiftshaderGraphics();
     }
 }
 
@@ -782,6 +824,8 @@ void DetectGraphics(void) {
     SetProperty(kGraphicsCardNameProp, card_name);
     SetProperty(kGraphicsRenderNameProp, render_name);
 
+    SetDefaultsForDrmDisplay(card_fd, render_fd);
+
     // TODO: Differentiate card and render here
     if (kMustUseFbDisplayGpus.find(card_name) != kMustUseFbDisplayGpus.end()) {
         LOG(INFO) << "This GPU must use framebuffer display for now";
@@ -789,7 +833,7 @@ void DetectGraphics(void) {
     } else if (kDrmSysfbNames.find(card_name) != kDrmSysfbNames.end()) {
         OnDetectDrmSysfb();
     } else if (card_name == "amdgpu") {
-        OnDetectAmdGpu(card_fd);
+        OnDetectAmdGpu();
     } else if (card_name == "i915") {
         OnDetectIntelGpu(card_fd);
     } else if (card_name == "msm") {
