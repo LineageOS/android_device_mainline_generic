@@ -84,7 +84,7 @@ const std::string kVintfDestDir = "/vendor/etc/vintf/manifest/";
 const std::string kVintfSrcDir = "/vendor/etc/vintf_src/";
 
 const std::set<std::string> kDrmSysfbNames = {"efidrm", "simpledrm", "vesadrm"};
-const std::set<std::string> kMustUseFbDisplayGpus = {};
+const std::set<std::string> kMustUseFbDisplayCards = {};
 
 struct HalService {
     std::string name;
@@ -476,45 +476,54 @@ void SetupFramebufferDisplay(void) {
     UseSwiftshaderGraphics();
 }
 
-void OnDetectDrmSysfb(void) {
-    LOG(INFO) << "Detected DRM sysfb";
+void DrmSysfbCard(void) {
+    LOG(INFO) << "Detected DRM sysfb card";
     SetupFramebufferDisplay();
 }
 
-void OnDetectUnknownGpu(const std::string& gpu_name) {
-    LOG(WARNING) << "GPU is not directly supported";
+void DrmUnknownCard(const std::string& card_name) {
+    LOG(WARNING) << "DRM card is not directly supported";
 
-    const std::unordered_map<std::string, HwVulkan> kGpuNameToHwVulkanMap = {
-        {"asahi", HwVulkan::Asahi},
-        // TODO: Differentiate card and render nodes
-        // card:
+    const std::unordered_map<std::string, HwVulkan> kCardNameToHwVulkanMap = {
         // TODO: HwVulkan::Imagination require matching card&render pair, see pvr_drm_configs[] in mesa
         {"mediatek", HwVulkan::Imagination},
         {"tidss", HwVulkan::Imagination},
-        // render (have no use until we check for render nodes too):
+    };
+    if (kCardNameToHwVulkanMap.contains(card_name)) {
+        gHwVulkan = kCardNameToHwVulkanMap.at(card_name);
+    }
+}
+
+void DrmUnknownRender(const std::string& render_name) {
+    LOG(WARNING) << "DRM render is not directly supported";
+
+    const std::unordered_map<std::string, HwVulkan> kRenderNameToHwVulkanMap = {
+        {"asahi", HwVulkan::Asahi},
         {"panfrost", HwVulkan::Panfrost},
         {"panthor", HwVulkan::Panfrost},
         {"v3d", HwVulkan::Broadcom},
     };
-    if (kGpuNameToHwVulkanMap.contains(gpu_name)) {
-        gHwVulkan = kGpuNameToHwVulkanMap.at(gpu_name);
+    if (kRenderNameToHwVulkanMap.contains(render_name)) {
+        gHwVulkan = kRenderNameToHwVulkanMap.at(render_name);
     }
 }
 
-void OnDetectAmdGpu(void) {
+void DrmAmdgpuRender(void) {
     gMinigbmGenericBackend = MinigbmGenericBackend::DumbGeneric;
     gGlesVersion = kGlesVersion32;
     gHwVulkan = HwVulkan::Radeon;
 }
 
-void OnDetectIntelGpu(int card_fd) {
+void DrmI915(int fd, bool is_render) {
     int ret = 0;
 
-    if (!IsForcedSwiftshader()) {
-        gGlesVersion = kGlesVersion32;
-        gHwVulkan = HwVulkan::Intel;  // May get overridden later
-    } else {
-        UseSwiftshaderGraphics();
+    if (is_render) {
+        if (IsForcedSwiftshader()) {
+            UseSwiftshaderGraphics();
+        } else {
+            gGlesVersion = kGlesVersion32;
+            gHwVulkan = HwVulkan::Intel;  // May get overridden later
+        }
     }
 
     int value;
@@ -523,20 +532,21 @@ void OnDetectIntelGpu(int card_fd) {
     };
 
     get_param.param = I915_PARAM_CHIPSET_ID;
-    ret = drmIoctl(card_fd, DRM_IOCTL_I915_GETPARAM, &get_param);
+    ret = drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &get_param);
     if (!ret) {
         // Enable various workarounds
         /*
          * If the determination gets more complicated in future,
          * We can consider using minigbm's i915_info_from_device_id()
          */
-        if (value < 0x1902 && value != 0x0f31) {
+        if (!is_render && (value < 0x1902 && value != 0x0f31)) {
             // From Intel Core to pre-Skylake (HD Graphics 510)
             // Except for Atom Processor Z36xxx/Z37xxx
             SetProperty("ro.vendor.hwc.drm.avoid_using_alpha_bits_for_framebuffer", "1");
         }
-        if (value <= 0x0F33 || (value >= 0x1602 && value <= 0x162E) ||
-            (value >= 0x22B0 && value <= 0x22B3)) {
+        if (is_render && (value <= 0x0F33 ||
+            (value >= 0x1602 && value <= 0x162E) ||
+            (value >= 0x22B0 && value <= 0x22B3))) {
             // Approximate of gen7_ids and gen8_ids according to minigbm/i915.c
             gHwVulkan = HwVulkan::Intel_hasvk;
         }
@@ -546,7 +556,7 @@ void OnDetectIntelGpu(int card_fd) {
     }
 }
 
-void OnDetectMsmGpu(int card_fd) {
+void DrmMsmCard(int card_fd) {
     gHwVulkan = HwVulkan::Freedreno;
 
     if (IsForcedSwiftshader()) {
@@ -593,21 +603,22 @@ err_fd_device_new:
     return;
 }
 
-void OnDetectNouveauGpu(void) {
+void DrmNouveauRender(void) {
     gGlesVersion = kGlesVersion31;
     gHwVulkan = HwVulkan::Nouveau;
 }
 
-void OnDetectQxlGpu(void) {
+void DrmQxlCard(void) {
     SetupFramebufferDisplay();
 }
 
-void OnDetectRadeonGpu(void) {
+void DrmRadeonRender(void) {
     gMinigbmGenericBackend = MinigbmGenericBackend::DumbGeneric;
     gGlesVersion = kGlesVersion31;
 }
 
-void OnDetectVirtioGpu(int card_fd) {
+void DrmVirtiogpu(int fd, bool is_render, const std::string& render_name) {
+    bool value_3d_features = false;
     int ret = 0;
 
     uint32_t value;
@@ -616,29 +627,49 @@ void OnDetectVirtioGpu(int card_fd) {
     };
 
     get_param.param = VIRTGPU_PARAM_3D_FEATURES;
-    ret = drmIoctl(card_fd, DRM_IOCTL_VIRTGPU_GETPARAM, &get_param);
+    ret = drmIoctl(fd, DRM_IOCTL_VIRTGPU_GETPARAM, &get_param);
     if (!ret) {
-        if (value) {
+        value_3d_features = !!value;
+    } else {
+        LOG(ERROR) << "Failed to get 3D features parameter from virtio_gpu";
+    }
+
+    if (render_name.empty() ||
+        (render_name == "virtio_gpu" && !value_3d_features)) {
+        gSfNativeWindowBuffersFormat = HAL_PIXEL_FORMAT_BGRA_8888;
+    }
+
+    if (is_render) {
+        if (value_3d_features) {
             gHwEgl = HwEgl::Mesa;
             gHwVulkan = HwVulkan::Virtio;
             gGlesVersion = kGlesVersion32;
         } else {
-            gSfNativeWindowBuffersFormat = HAL_PIXEL_FORMAT_BGRA_8888;
             UseSwiftshaderGraphics();
         }
-    } else {
-        LOG(ERROR) << "Failed to get 3D features parameter from virtio_gpu";
     }
 }
 
-void OnDetectVmwgfxGpu(void) {
+void DrmVmwgfxCard(void) {
     std::string smbios_product_name;
     ReadFileToString(kDmiIdPath + "product_name", &smbios_product_name);
     if (!smbios_product_name.empty()) smbios_product_name.pop_back();
 
     if (smbios_product_name == "VirtualBox" || IsForcedSwiftshader()) {
+        // Swiftshader does not display directly via DRM
         // 3D acceleration does not work on VirtualBox
         SetupFramebufferDisplay();
+    }
+}
+
+void DrmVmwgfxRender(void) {
+    std::string smbios_product_name;
+    ReadFileToString(kDmiIdPath + "product_name", &smbios_product_name);
+    if (!smbios_product_name.empty()) smbios_product_name.pop_back();
+
+    if (smbios_product_name == "VirtualBox" || IsForcedSwiftshader()) {
+        // DRM render won't be used on VirtualBox
+        // Forced Swiftshader does not need us setting gles version
     } else {
         gGlesVersion = kGlesVersion31;
     }
@@ -739,6 +770,7 @@ void DetectGraphics(void) {
     std::string card_path, render_path;
     int card_fd = -1, render_fd = -1;
     drmVersionPtr card_version = nullptr, render_version = nullptr;
+    bool card_is_sysfb = false;
     std::string card_name, render_name;
     std::list<unsigned int> drm_sysfb_cards;
 
@@ -797,6 +829,7 @@ void DetectGraphics(void) {
 
     // If we have sysfb cards only
     if (card_fd < 0 && !drm_sysfb_cards.empty()) {
+        card_is_sysfb = true;
         for (const auto& i : drm_sysfb_cards) {
             card_path = "/dev/dri/card" + std::to_string(i);
             card_fd = open(card_path.c_str(), O_RDONLY);
@@ -819,37 +852,61 @@ void DetectGraphics(void) {
         return;
     }
 
-    SetProperty(kHwcDrmDeviceProp, card_path);
-
     SetProperty(kGraphicsCardNameProp, card_name);
     SetProperty(kGraphicsRenderNameProp, render_name);
 
     SetDefaultsForDrmDisplay(card_fd, render_fd);
 
-    // TODO: Differentiate card and render here
-    if (kMustUseFbDisplayGpus.find(card_name) != kMustUseFbDisplayGpus.end()) {
-        LOG(INFO) << "This GPU must use framebuffer display for now";
+    // DRM HWC tries the first or the specified card node
+    SetProperty(kHwcDrmDeviceProp, card_path);
+
+    // Minigbm tries the first render node, and then the first card node
+
+    // Card
+    if (kMustUseFbDisplayCards.find(card_name) != kMustUseFbDisplayCards.end()) {
+        LOG(INFO) << "This DRM card must use framebuffer display for now";
         SetupFramebufferDisplay();
-    } else if (kDrmSysfbNames.find(card_name) != kDrmSysfbNames.end()) {
-        OnDetectDrmSysfb();
+    } else if (card_is_sysfb) {
+        DrmSysfbCard();
     } else if (card_name == "amdgpu") {
-        OnDetectAmdGpu();
+        // nothing
     } else if (card_name == "i915") {
-        OnDetectIntelGpu(card_fd);
+        DrmI915(card_fd, false);
     } else if (card_name == "msm") {
-        OnDetectMsmGpu(card_fd);
+        DrmMsmCard(card_fd);
     } else if (card_name == "nouveau") {
-        OnDetectNouveauGpu();
+        // nothing
     } else if (card_name == "qxl") {
-        OnDetectQxlGpu();
+        DrmQxlCard();
     } else if (card_name == "radeon") {
-        OnDetectRadeonGpu();
+        // nothing
     } else if (card_name == "virtio_gpu") {
-        OnDetectVirtioGpu(card_fd);
+        DrmVirtiogpu(card_fd, false, render_name);
     } else if (card_name == "vmwgfx") {
-        OnDetectVmwgfxGpu();
+        DrmVmwgfxCard();
     } else {
-        OnDetectUnknownGpu(card_name);
+        DrmUnknownCard(card_name);
+    }
+
+    // Render
+    if (render_fd < 0) {
+        LOG(INFO) << "No DRM render found";
+    } else if (render_name == "amdgpu") {
+        DrmAmdgpuRender();
+    } else if (render_name == "i915") {
+        DrmI915(render_fd, true);
+    } else if (render_name == "msm") {
+        // nothing
+    } else if (render_name == "nouveau") {
+        DrmNouveauRender();
+    } else if (render_name == "radeon") {
+        DrmRadeonRender();
+    } else if (render_name == "virtio_gpu") {
+        DrmVirtiogpu(render_fd, true, render_name);
+    } else if (render_name == "vmwgfx") {
+        DrmVmwgfxRender();
+    } else {
+        DrmUnknownRender(render_name);
     }
 
     if (card_version) drmFreeVersion(card_version);
