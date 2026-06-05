@@ -58,7 +58,7 @@ constexpr char kHwVulkanProp[] = "ro.hardware.vulkan";
 constexpr char kUsbGadgetApexProp[] = "ro.boot.vendor.apex.com.android.hardware.usb.gadget";
 constexpr char kVulkanApexProp[] = "ro.boot.vendor.apex.org.lineageos.device.graphics.vulkan";
 
-constexpr char kGraphicsGpuNameProp[] = "ro.vendor.graphics.gpu.name";
+constexpr char kGraphicsCardNameProp[] = "ro.vendor.graphics.card.name";
 
 constexpr char kBootGraphicsProp[] = "ro.boot.graphics";
 constexpr char kBootOdmSkuProp[] = "ro.boot.product.hardware.sku";
@@ -693,10 +693,10 @@ void OnDetectVmwgfxGpu(void) {
 }
 
 void DetectGraphics(void) {
-    std::string path;
-    int fd;
-    drmVersionPtr version;
-    std::string name;
+    std::string card_path;
+    int card_fd;
+    drmVersionPtr card_version;
+    std::string card_name;
     std::list<unsigned int> drm_sysfb_cards;
 
     if (IsForcedFramebufferDisplay()) {
@@ -706,26 +706,26 @@ void DetectGraphics(void) {
     }
 
     for (uint32_t i = 0; i < DRM_MAX_MINOR; i++) {
-        path = std::string("/dev/dri/card" + std::to_string(i));
-        fd = open(path.c_str(), O_RDONLY);
-        if (fd >= 0) {
-            version = drmGetVersion(fd);
-            if (!version) {
+        card_path = "/dev/dri/card" + std::to_string(i);
+        card_fd = open(card_path.c_str(), O_RDONLY);
+        if (card_fd >= 0) {
+            card_version = drmGetVersion(card_fd);
+            if (!card_version) {
                 LOG(ERROR) << "Failed to get DRM version for card " << std::to_string(i);
-                close(fd);
-                fd = -1;
+                close(card_fd);
+                card_fd = -1;
                 continue;
             }
 
-            name = std::string(version->name, version->name_len);
-            LOG(INFO) << "Card " << std::to_string(i) << " is " << name;
+            card_name = std::string(card_version->name, card_version->name_len);
+            LOG(INFO) << "Card " << std::to_string(i) << " is " << card_name;
 
             // Save DRM sysfb card, and close it for now
-            if (kDrmSysfbNames.find(name) != kDrmSysfbNames.end()) {
+            if (kDrmSysfbNames.find(card_name) != kDrmSysfbNames.end()) {
                 drm_sysfb_cards.push_back(i);
-                drmFreeVersion(version);
-                close(fd);
-                fd = -1;
+                drmFreeVersion(card_version);
+                close(card_fd);
+                card_fd = -1;
                 continue;
             }
 
@@ -733,25 +733,26 @@ void DetectGraphics(void) {
         }
     }
 
-    if (fd < 0 && !drm_sysfb_cards.empty()) {
+    // If we have sysfb cards only
+    if (card_fd < 0 && !drm_sysfb_cards.empty()) {
         for (const auto& i : drm_sysfb_cards) {
-            path = std::string("/dev/dri/card" + std::to_string(i));
-            fd = open(path.c_str(), O_RDONLY);
-            if (fd >= 0) {
-                version = drmGetVersion(fd);
-                if (!version) {
+            card_path = "/dev/dri/card" + std::to_string(i);
+            card_fd = open(card_path.c_str(), O_RDONLY);
+            if (card_fd >= 0) {
+                card_version = drmGetVersion(card_fd);
+                if (!card_version) {
                     LOG(ERROR) << "Failed to get DRM version for card " << std::to_string(i);
-                    close(fd);
-                    fd = -1;
+                    close(card_fd);
+                    card_fd = -1;
                     continue;
                 }
-                name = std::string(version->name, version->name_len);
+                card_name = std::string(card_version->name, card_version->name_len);
             }
         }
     }
 
-    if (fd < 0) {
-        LOG(ERROR) << "Failed to open any DRM device, falling back to framebuffer display";
+    if (card_fd < 0) {
+        LOG(ERROR) << "Failed to open any DRM card device, falling back to framebuffer display";
         SetupFramebufferDisplay();
         return;
     }
@@ -760,37 +761,37 @@ void DetectGraphics(void) {
      * HWC uses card nodes, Gralloc tries renderD nodes first
      * Handle the situation on i.e. laptops with discrete graphics
      */
-    SetProperty(kHwcDrmDeviceProp, path);
+    SetProperty(kHwcDrmDeviceProp, card_path);
 
-    SetProperty(kGraphicsGpuNameProp, name);
-    LOG(INFO) << "GPU name is " << name;
-    if (kMustUseFbDisplayGpus.find(name) != kMustUseFbDisplayGpus.end()) {
+    SetProperty(kGraphicsCardNameProp, card_name);
+    LOG(INFO) << "Graphics card name is " << card_name;
+    if (kMustUseFbDisplayGpus.find(card_name) != kMustUseFbDisplayGpus.end()) {
         LOG(INFO) << "This GPU must use framebuffer display for now";
         SetupFramebufferDisplay();
-    } else if (kDrmSysfbNames.find(name) != kDrmSysfbNames.end()) {
+    } else if (kDrmSysfbNames.find(card_name) != kDrmSysfbNames.end()) {
         OnDetectDrmSysfb();
-    } else if (name == "amdgpu") {
-        OnDetectAmdGpu(fd);
-    } else if (name == "i915") {
-        OnDetectIntelGpu(fd);
-    } else if (name == "msm") {
-        OnDetectMsmGpu(fd);
-    } else if (name == "nouveau") {
+    } else if (card_name == "amdgpu") {
+        OnDetectAmdGpu(card_fd);
+    } else if (card_name == "i915") {
+        OnDetectIntelGpu(card_fd);
+    } else if (card_name == "msm") {
+        OnDetectMsmGpu(card_fd);
+    } else if (card_name == "nouveau") {
         OnDetectNouveauGpu();
-    } else if (name == "qxl") {
+    } else if (card_name == "qxl") {
         OnDetectQxlGpu();
-    } else if (name == "radeon") {
+    } else if (card_name == "radeon") {
         OnDetectRadeonGpu();
-    } else if (name == "virtio_gpu") {
-        OnDetectVirtioGpu(fd);
-    } else if (name == "vmwgfx") {
+    } else if (card_name == "virtio_gpu") {
+        OnDetectVirtioGpu(card_fd);
+    } else if (card_name == "vmwgfx") {
         OnDetectVmwgfxGpu();
     } else {
-        OnDetectUnknownGpu(name);
+        OnDetectUnknownGpu(card_name);
     }
 
-    drmFreeVersion(version);
-    close(fd);
+    drmFreeVersion(card_version);
+    close(card_fd);
 }
 
 }  // namespace
