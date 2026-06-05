@@ -692,35 +692,18 @@ void OnDetectVmwgfxGpu(void) {
     }
 }
 
-}  // namespace
-
-int main(int, char* argv[]) {
-    InitLogging(argv, &KernelLogger);
-    umask(000);
-
-    if (access("/dev/snd/pcmC0D0p", F_OK) == 0) {
-        LOG(INFO) << "Sound card 0 device 0 playback is present, enable audio output";
-        gHwAudioPrimary = HwAudioPrimary::Tinyhal;
-    }
-
-    if (GetProperty(kUsbControllerProp, "").empty()) {
-        gUsbGadgetApex = UsbGadgetApex::None;
-    } else {
-        LOG(INFO) << "Detected USB controller, enable USB Gadget support";
-        gUsbGadgetApex = UsbGadgetApex::Mainline;
-    }
-
-    if (IsForcedFramebufferDisplay()) {
-        LOG(INFO) << "Forced using framebuffer display";
-        SetupFramebufferDisplay();
-        return ApplySelections() ? EXIT_SUCCESS : EXIT_FAILURE;
-    }
-
+void DetectGraphics(void) {
     std::string path;
     int fd;
     drmVersionPtr version;
     std::string name;
     std::list<unsigned int> drm_sysfb_cards;
+
+    if (IsForcedFramebufferDisplay()) {
+        LOG(INFO) << "Forced using framebuffer display";
+        SetupFramebufferDisplay();
+        return;
+    }
 
     for (uint32_t i = 0; i < DRM_MAX_MINOR; i++) {
         path = std::string("/dev/dri/card" + std::to_string(i));
@@ -770,7 +753,7 @@ int main(int, char* argv[]) {
     if (fd < 0) {
         LOG(ERROR) << "Failed to open any DRM device, falling back to framebuffer display";
         SetupFramebufferDisplay();
-        return ApplySelections() ? EXIT_SUCCESS : EXIT_FAILURE;
+        return;
     }
 
     /* TODO:
@@ -808,5 +791,27 @@ int main(int, char* argv[]) {
 
     drmFreeVersion(version);
     close(fd);
+}
+
+}  // namespace
+
+int main(int, char* argv[]) {
+    InitLogging(argv, &KernelLogger);
+    umask(000);
+
+    if (access("/dev/snd/pcmC0D0p", F_OK) == 0) {
+        LOG(INFO) << "Sound card 0 device 0 playback is present, enable audio output";
+        gHwAudioPrimary = HwAudioPrimary::Tinyhal;
+    }
+
+    if (GetProperty(kUsbControllerProp, "").empty()) {
+        gUsbGadgetApex = UsbGadgetApex::None;
+    } else {
+        LOG(INFO) << "Detected USB controller, enable USB Gadget support";
+        gUsbGadgetApex = UsbGadgetApex::Mainline;
+    }
+
+    DetectGraphics();
+
     return ApplySelections() ? EXIT_SUCCESS : EXIT_FAILURE;
 }
