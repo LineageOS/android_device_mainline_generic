@@ -23,6 +23,10 @@
 #include <virtgpu_drm.h>
 #include <xf86drm.h>
 
+extern "C" {
+#include <freedreno_drmif.h>
+}
+
 namespace fs = std::filesystem;
 using namespace android::base;
 
@@ -197,6 +201,7 @@ const std::unordered_map<HwHwc, std::string> kHwHwcMap = {
 
 enum class HwVulkan {
     Unset,
+    Freedreno,
     Intel,
     Intel_hasvk,
     Lvp,
@@ -209,6 +214,7 @@ const std::unordered_map<HwVulkan, std::string> kHwVulkanMap = {
         {HwVulkan::Intel, "intel"},     {HwVulkan::Intel_hasvk, "intel_hasvk"},
         {HwVulkan::Nouveau, "nouveau"}, {HwVulkan::Radeon, "radeon"},
         {HwVulkan::Virtio, "virtio"},   {HwVulkan::Lvp, "lvp_mesa3d"},
+        {HwVulkan::Freedreno, "freedreno"},
 };
 
 enum class UsbGadgetApex {
@@ -540,6 +546,58 @@ void OnDetectIntelGpu(int fd) {
     }
 }
 
+void OnDetectMsmGpu(int fd) {
+    gGrallocHalService = GrallocHalServices::MinigbmUpstream;
+    gHwcHalService = HwcHalServices::DrmUpstream;
+    gHwGralloc = HwGralloc::MinigbmUpstream;
+
+    gHwEgl = HwEgl::Mesa;
+    gHwVulkan = HwVulkan::Freedreno;
+
+    if (IsForcedSwiftshader()) {
+        SetProperty("vendor.minigbm.debug", "nocompression");
+    }
+
+    // device/mainline/qcom-common/services/msm_drm_quirks begin
+    struct fd_device* dev;
+    struct fd_pipe* pipe;
+
+    dev = fd_device_new(fd);
+    if (!dev) {
+        LOG(ERROR) << "fd_device_new() failed";
+        goto err_fd_device_new;
+    }
+
+    pipe = fd_pipe_new(dev, FD_PIPE_3D);
+    if (!pipe) {
+        LOG(ERROR) << "fd_pipe_new() failed";
+        goto err_fd_pipe_new;
+    }
+
+    uint64_t chip_id, gpu_id;
+    fd_pipe_get_param(pipe, FD_CHIP_ID, &chip_id);
+    fd_pipe_get_param(pipe, FD_GPU_ID, &gpu_id);
+    LOG(INFO) << __FUNCTION__ << ": chip_id = " << std::to_string(chip_id)
+              << " gpu_id = " << std::to_string(gpu_id);
+
+    // Adreno 5xx Mesa Freedreno quirks
+    if (gpu_id >= 500 && gpu_id <= 599) {
+        SetProperty("vendor.mesa.fd.mesa.debug", "sysmem");
+    }
+
+    // Let minigbm avoid UBWC for pre Adreno 6xx
+    if (gpu_id < 600) {
+        SetProperty("vendor.minigbm.avoid_ubwc", "true");
+    }
+
+    fd_pipe_del(pipe);
+err_fd_pipe_new:
+    fd_device_del(dev);
+err_fd_device_new:
+    // device/mainline/qcom-common/services/msm_drm_quirks end
+    return;
+}
+
 void OnDetectNouveauGpu(void) {
     gHwcHalService = HwcHalServices::DrmFb;
     gGrallocHalService = GrallocHalServices::MinigbmUpstream;
@@ -709,6 +767,8 @@ int main(int, char* argv[]) {
         OnDetectAmdGpu(fd);
     } else if (name == "i915") {
         OnDetectIntelGpu(fd);
+    } else if (name == "msm") {
+        OnDetectMsmGpu(fd);
     } else if (name == "nouveau") {
         OnDetectNouveauGpu();
     } else if (name == "qxl") {
