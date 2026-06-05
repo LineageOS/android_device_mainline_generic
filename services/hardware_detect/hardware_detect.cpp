@@ -59,6 +59,7 @@ constexpr char kUsbGadgetApexProp[] = "ro.boot.vendor.apex.com.android.hardware.
 constexpr char kVulkanApexProp[] = "ro.boot.vendor.apex.org.lineageos.device.graphics.vulkan";
 
 constexpr char kGraphicsCardNameProp[] = "ro.vendor.graphics.card.name";
+constexpr char kGraphicsRenderNameProp[] = "ro.vendor.graphics.render.name";
 
 constexpr char kBootGraphicsProp[] = "ro.boot.graphics";
 constexpr char kBootOdmSkuProp[] = "ro.boot.product.hardware.sku";
@@ -693,10 +694,10 @@ void OnDetectVmwgfxGpu(void) {
 }
 
 void DetectGraphics(void) {
-    std::string card_path;
-    int card_fd;
-    drmVersionPtr card_version;
-    std::string card_name;
+    std::string card_path, render_path;
+    int card_fd = -1, render_fd = -1;
+    drmVersionPtr card_version = nullptr, render_version = nullptr;
+    std::string card_name, render_name;
     std::list<unsigned int> drm_sysfb_cards;
 
     if (IsForcedFramebufferDisplay()) {
@@ -733,6 +734,25 @@ void DetectGraphics(void) {
         }
     }
 
+    for (uint32_t i = 0; i < DRM_MAX_MINOR; i++) {
+        render_path = "/dev/dri/render" + std::to_string(DRM_MAX_MINOR + i);
+        render_fd = open(card_path.c_str(), O_RDONLY);
+        if (render_fd >= 0) {
+            render_version = drmGetVersion(render_fd);
+            if (!render_version) {
+                LOG(ERROR) << "Failed to get DRM version for render " << std::to_string(i);
+                close(render_fd);
+                render_fd = -1;
+                continue;
+            }
+
+            render_name = std::string(render_version->name, render_version->name_len);
+            LOG(INFO) << "Render " << std::to_string(i) << " is " << render_name;
+
+            break;
+        }
+    }
+
     // If we have sysfb cards only
     if (card_fd < 0 && !drm_sysfb_cards.empty()) {
         for (const auto& i : drm_sysfb_cards) {
@@ -764,6 +784,7 @@ void DetectGraphics(void) {
     SetProperty(kHwcDrmDeviceProp, card_path);
 
     SetProperty(kGraphicsCardNameProp, card_name);
+    SetProperty(kGraphicsRenderNameProp, render_name);
     LOG(INFO) << "Graphics card name is " << card_name;
     if (kMustUseFbDisplayGpus.find(card_name) != kMustUseFbDisplayGpus.end()) {
         LOG(INFO) << "This GPU must use framebuffer display for now";
