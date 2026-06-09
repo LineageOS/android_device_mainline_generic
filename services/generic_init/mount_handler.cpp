@@ -144,6 +144,12 @@ constexpr char kMountFirmwareParam[] = "mount_firmware";
 constexpr char kMountSystemParam[] = "mount_system";
 constexpr char kMountUserdataParam[] = "mount_userdata";
 
+enum class MountFirmwareParam {
+    ALL_POSSIBLE = 0,
+    DISABLE = 1,
+    ONLY_ANDROID_DIR = 2,
+};
+
 enum class MountSystemParam {
     STANDARD_PARTITIONS_WITH_PARTNAME = 0,
     ANY_BLOCK_DEVICES_AS_PARTITION = 1,
@@ -156,6 +162,14 @@ enum class MountUserdataParam {
     IMAGES = 1,
     BIND_MOUNT_DIR = 2,
     TMPFS = 3,
+};
+
+const std::unordered_map<std::string, MountFirmwareParam> kStringToMountFirmwareParamMap = {
+    {"all_possible", MountFirmwareParam::ALL_POSSIBLE},
+    {"disable", MountFirmwareParam::DISABLE},
+    {"false", MountFirmwareParam::DISABLE},
+    {"only_android_dir", MountFirmwareParam::ONLY_ANDROID_DIR},
+    {"true", MountFirmwareParam::ALL_POSSIBLE},
 };
 
 const std::unordered_map<std::string, MountSystemParam> kStringToMountSystemParamMap = {
@@ -172,7 +186,7 @@ const std::unordered_map<std::string, MountUserdataParam> kStringToMountUserdata
     {"tmpfs", MountUserdataParam::TMPFS},
 };
 
-bool param_mount_firmware = true;
+MountFirmwareParam param_mount_firmware = MountFirmwareParam::ALL_POSSIBLE;
 MountSystemParam param_mount_system = MountSystemParam::STANDARD_PARTITIONS_WITH_PARTNAME;
 MountUserdataParam param_mount_userdata = MountUserdataParam::STANDARD_PARTITIONS_WITH_PARTNAME;
 
@@ -236,10 +250,13 @@ void ParseConfig(void) {
 
     ret = fs_mgr_get_boot_config(kMountFirmwareParam, &tmp);
     if (ret) {
-        if (tmp == "false") {
-            need_firmware_dir = false;
-            param_mount_firmware = false;
+        if (kStringToMountFirmwareParamMap.contains(tmp)) {
+            param_mount_firmware = kStringToMountFirmwareParamMap.at(tmp);
+        } else {
+            LOG(ERROR) << "Parameter " << kMountFirmwareParam << " value is invalid";
         }
+    } else {
+        LOG(INFO) << "Parameter " << kMountFirmwareParam << " is unset";
     }
 
     ret = fs_mgr_get_boot_config(kMountSystemParam, &tmp);
@@ -262,6 +279,10 @@ void ParseConfig(void) {
         }
     } else {
         LOG(INFO) << "Parameter " << kMountUserdataParam << " is unset";
+    }
+
+    if (param_mount_firmware != MountFirmwareParam::DISABLE) {
+        need_firmware_dir = true;
     }
 
     if (param_mount_system == MountSystemParam::IMAGES ||
@@ -349,6 +370,10 @@ void ParseBlockDevice_CheckDirs(BlockDeviceInfo* info) {
         if (TryAccessDir(kTryMountTarget + "/" + fw_dir)) {
             LOG(INFO) << "Block device " << devpath << " have firmware directory: " << fw_dir;
             info->have_firmware_dir = fw_dir;
+            break;
+        }
+        if (param_mount_firmware == MountFirmwareParam::ONLY_ANDROID_DIR) {
+            // android dir is the first one in the list
             break;
         }
     }
