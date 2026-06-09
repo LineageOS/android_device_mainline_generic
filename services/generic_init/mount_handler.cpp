@@ -342,7 +342,7 @@ void ParseBlockDevice_CheckDirs(BlockDeviceInfo* info) {
 
     std::list<std::string> possible_firmware_dirs = {
         info->have_android_dir.empty() ? "" : info->have_android_dir + "/firmware",
-        "lib/firmware", "linux-firmware", "firmware"
+        "usr/lib/firmware", "lib/firmware", "linux-firmware", "firmware"
     };
     for (const auto& fw_dir : possible_firmware_dirs) {
         if (fw_dir.empty()) continue;
