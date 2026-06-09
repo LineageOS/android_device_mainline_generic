@@ -71,6 +71,7 @@ drivers/ufs"
 
 # Basic display
 MODULES+="
+appledrm
 efifb
 simpledrm
 simplefb
