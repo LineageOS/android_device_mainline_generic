@@ -36,6 +36,10 @@ BOARD_MESA3D_VULKAN_DRIVERS += \
     imagination \
     panfrost
 
+BOARD_MESA3D_MESON_ARGS += \
+    -Dprecomp-compiler=system \
+    -Dspirv-tools=disabled
+
 # Graphics allocator (minigbm)
 $(call soong_config_set,minigbm_upstream,platform,all_arm)
 
