@@ -18,23 +18,23 @@ TARGET_GRUB_ARCH := arm64-efi
 
 # Graphics (Mesa)
 BOARD_MESA3D_GALLIUM_DRIVERS += \
+    asahi \
     ethosu \
     etnaviv \
     freedreno \
     lima \
+    panfrost \
+    rocket \
     tegra \
     v3d \
     vc4
-#    asahi
-#    panfrost
-#    rocket
 
 BOARD_MESA3D_VULKAN_DRIVERS += \
+    asahi \
     broadcom \
-    freedreno
-#    asahi
-#    imagination
-#    panfrost
+    freedreno \
+    imagination \
+    panfrost
 
 # Graphics allocator (minigbm)
 $(call soong_config_set,minigbm_upstream,platform,all_arm)
