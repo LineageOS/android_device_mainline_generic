@@ -8,3 +8,10 @@ soong_namespace {
         "device/mainline/common",
     ],
 }
+
+install_symlink {
+    name: "ramdisk_lib_firmware_vendor_symlink",
+    ramdisk: true,
+    installed_location: "lib/firmware/vendor",
+    symlink_target: "/vendorfw",
+}
