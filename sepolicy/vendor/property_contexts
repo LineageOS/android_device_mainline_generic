@@ -1,0 +1,2 @@
+# Display
+ro.vendor.get_display_ppi.		u:object_r:vendor_get_display_ppi_prop:s0
