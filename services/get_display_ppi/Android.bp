@@ -1,0 +1,9 @@
+cc_binary {
+    name: "get_display_ppi",
+    srcs: ["get_display_ppi.cpp"],
+    shared_libs: [
+        "libbase",
+        "liblog",
+    ],
+    vendor: true,
+}

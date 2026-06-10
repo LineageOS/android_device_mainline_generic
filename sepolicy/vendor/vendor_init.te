@@ -1,0 +1,2 @@
+# Properties
+get_prop(vendor_init, vendor_get_display_ppi_prop)

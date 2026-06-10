@@ -32,8 +32,20 @@ on init
     start console_ttyS0
 
 # Display
-on early-init
-    setprop ro.sf.lcd_density ${ro.boot.lcd_density:-160}
+service vendor.get_display_ppi /vendor/bin/get_display_ppi
+    class core
+    user root
+    group root graphics
+    oneshot
+
+on early-init && property:ro.boot.lcd_density=*
+    setprop ro.sf.lcd_density ${ro.boot.lcd_density}
+
+on init
+    start vendor.get_display_ppi
+
+on late-init && property:ro.vendor.get_display_ppi.lcd_density=*
+    setprop ro.sf.lcd_density ${ro.vendor.get_display_ppi.lcd_density}
 
 on property:ro.hardware.gralloc=default && property:sys.bootstat.first_boot_completed=1
     write /sys/class/vtconsole/vtcon0/bind 0

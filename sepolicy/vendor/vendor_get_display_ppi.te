@@ -1,0 +1,6 @@
+type vendor_get_display_ppi, domain;
+type vendor_get_display_ppi_exec, exec_type, vendor_file_type, file_type;
+
+init_daemon_domain(vendor_get_display_ppi);
+
+set_prop(vendor_get_display_ppi, vendor_get_display_ppi_prop)
