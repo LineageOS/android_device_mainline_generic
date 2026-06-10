@@ -14,7 +14,7 @@ LOCAL_WANTED_SYSTEM_IMAGES_FILES := \
 
 # We aren't GKI compatible so kernel and system_dlkm counts into vendor for us...
 LOCAL_WANTED_VENDOR_IMAGES := \
-    ramdisk \
+    ramdisk-all-combined \
     system_dlkm \
     vendor \
     vendor_dlkm

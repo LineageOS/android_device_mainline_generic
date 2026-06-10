@@ -17,15 +17,15 @@ endif
 UKIFY_OUT := $(PRODUCT_OUT)/$(UKIFY_OUT_FILENAME)
 
 UKIFY_DEPS := \
-    $(PRODUCT_OUT)/kernel \
-    $(PRODUCT_OUT)/ramdisk.img
+    $(INSTALLED_RAMDISK_ALL_COMBINED_TARGET) \
+    $(PRODUCT_OUT)/kernel
 
 # $(1): output file
 define make-ukify-out
 	if [ -f "$(CMDLINE_EXTRA_TXT)" ]; then \
 		echo "WARNING: $(CMDLINE_EXTRA_TXT) does not exist yet. Extra parameters are required to boot up, and you can put these on that file."; \
 	fi
-	PATH=/usr/local/bin:/usr/bin:/bin ukify build --efi-arch=$(UKIFY_EFI_ARCH) --linux=$(PRODUCT_OUT)/kernel --initrd=$(PRODUCT_OUT)/ramdisk.img --cmdline="$(BOARD_KERNEL_CMDLINE) $$(cat $(CMDLINE_EXTRA_TXT) 2>/dev/null)" --output=$(1)
+	PATH=/usr/local/bin:/usr/bin:/bin ukify build --efi-arch=$(UKIFY_EFI_ARCH) --linux=$(PRODUCT_OUT)/kernel --initrd=$(INSTALLED_RAMDISK_ALL_COMBINED_TARGET) --cmdline="$(BOARD_KERNEL_CMDLINE) $$(cat $(CMDLINE_EXTRA_TXT) 2>/dev/null)" --output=$(1)
 endef
 
 $(UKIFY_OUT): $(UKIFY_DEPS)
