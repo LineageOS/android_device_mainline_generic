@@ -1,2 +1,4 @@
 /prebuilts/ramdisk/*/firmware/
 /prebuilts/ramdisk/lib/modules/
+
+!/prebuilts/ramdisk/vendor/firmware/vendor
