@@ -165,6 +165,10 @@ PRODUCT_SHIPPING_API_LEVEL := 33
 PRODUCT_SOONG_NAMESPACES += \
     $(DEVICE_PATH)
 
+# Symlinks
+PRODUCT_PACKAGES += \
+    ramdisk_lib_firmware_vendor_symlink
+
 # USB
 PRODUCT_PACKAGES += \
     com.android.hardware.usb.gadget.none
