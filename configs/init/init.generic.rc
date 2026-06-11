@@ -56,5 +56,8 @@ on init
     write /proc/sys/kernel/modprobe /vendor/bin/modprobe_kernel
 
 # Mount
+on init
+    trigger firmware_mounts_complete
+
 on late-fs
     mount_all --late
