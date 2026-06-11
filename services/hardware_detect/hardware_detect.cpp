@@ -507,7 +507,7 @@ void DrmUnknownRender(const std::string& render_name) {
     LOG(WARNING) << "DRM render is not directly supported";
 
     const std::unordered_map<std::string, HwVulkan> kRenderNameToHwVulkanMap = {
-        {"asahi", HwVulkan::Asahi},
+        {"apple", HwVulkan::Asahi},
         {"panfrost", HwVulkan::Panfrost},
         {"panthor", HwVulkan::Panfrost},
         {"v3d", HwVulkan::Broadcom},
