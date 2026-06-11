@@ -147,7 +147,7 @@ static int KernelVersionNameFilter(const dirent* de) {
 
 }  // anonymous namespace
 
-extern "C" int modprobe_main(int argc, char** argv) {
+int main(int argc, char** argv) {
     android::base::InitLogging(argv, MyLogger);
     android::base::SetMinimumLogSeverity(android::base::INFO);
 
@@ -256,7 +256,7 @@ extern "C" int modprobe_main(int argc, char** argv) {
     }
 
     if (mod_dirs.empty()) {
-        static constexpr auto LIB_MODULES_PREFIX = "/lib/modules/";
+        static constexpr auto LIB_MODULES_PREFIX = "/vendor/lib/modules/";
         dirent** kernel_dirs = NULL;
 
         int n = scandir(LIB_MODULES_PREFIX, &kernel_dirs, KernelVersionNameFilter, NULL);
