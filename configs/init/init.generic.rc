@@ -51,6 +51,10 @@ service vendor.light-default /vendor/bin/hw/android.hardware.light-service.linea
 on early-init
     exec u:r:vendor_modprobe:s0 -- /vendor/bin/modprobe -d /vendor/lib/modules zram.ko
 
+on init
+    # Undo the override from system init.rc
+    write /proc/sys/kernel/modprobe /vendor/bin/modprobe_kernel
+
 # Mount
 on init
     trigger firmware_mounts_complete
