@@ -394,23 +394,32 @@ bool ApplySelections(void) {
         LOG(WARNING) << "Hwcomposer module is unset";
     }
 
+    switch (gVulkanApex) {
+        case VulkanApex::Unset:
+            gVulkanApex = VulkanApex::No_apex;
+            break;
+        case VulkanApex::No_apex:
+            break;
+        case VulkanApex::Swiftshader:
+            // Swiftshader APEX will set vulkan module by itself
+            gHwVulkan = HwVulkan::Unset;
+            break;
+    }
+
+    if (gHwVulkan != HwVulkan::Unset) {
+        strp = &kHwVulkanMap.at(gHwVulkan);
+        LOG(INFO) << "Set Vulkan module to " << *strp;
+        ret &= SetProperty(kHwVulkanProp, *strp);
+    } else {
+        LOG(WARNING) << "Vulkan module is unset";
+    }
+
     if (gVulkanApex != VulkanApex::Unset) {
         strp = &kVulkanApexMap.at(gVulkanApex);
         LOG(INFO) << "Set Vulkan APEX to " << *strp;
         ret &= SetProperty(kVulkanApexProp, *strp);
-    } else if (gHwVulkan != HwVulkan::Unset || gVulkanApex == VulkanApex::Unset) {
-        // Use dummy Vulkan APEX
-        strp = &kVulkanApexMap.at(VulkanApex::No_apex);
-        LOG(INFO) << "Set Vulkan APEX to " << *strp;
-        ret &= SetProperty(kVulkanApexProp, *strp);
-
-        if (gHwVulkan != HwVulkan::Unset) {
-            strp = &kHwVulkanMap.at(gHwVulkan);
-            LOG(INFO) << "Set Vulkan to " << *strp;
-            ret &= SetProperty(kHwVulkanProp, *strp);
-        }
     } else {
-        LOG(WARNING) << "Vulkan is unset";
+        LOG(WARNING) << "Vulkan APEX is unset";
     }
 
     if (gGrallocHalService != GrallocHalServices::Unset) {
