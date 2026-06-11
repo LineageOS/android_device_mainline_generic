@@ -61,6 +61,9 @@ BOARD_MESA3D_VULKAN_DRIVERS += \
 $(call soong_config_set_bool,drmfb_composer,uses_minigbm,true)
 
 # Kernel
+ifneq ($(MAINLINE_GENERIC_KERNEL_USE),)
+MAINLINE_GENERIC_KERNEL_BOARDCONFIG_MK ?= $(DEVICE_PATH)/kernel/$(MAINLINE_GENERIC_KERNEL_USE)/board.mk
+endif
 ifneq ($(MAINLINE_GENERIC_KERNEL_BOARDCONFIG_MK),)
 include $(MAINLINE_GENERIC_KERNEL_BOARDCONFIG_MK)
 else
