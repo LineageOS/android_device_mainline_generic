@@ -35,7 +35,8 @@ BOARD_KERNEL_CMDLINE := \
     console=tty0 \
     firmware_class.path=/mnt/vendor/firmware/ \
     mitigations=off \
-    rdinit=/system/bin/generic_init
+    rdinit=/system/bin/generic_init \
+    sysctl.kernel.modprobe=/vendor/bin/modprobe_kernel
 
 # Filesystem
 TARGET_USERIMAGES_SPARSE_EXT_DISABLED := true

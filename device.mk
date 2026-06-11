@@ -141,6 +141,9 @@ PRODUCT_COPY_FILES += \
     $(DEVICE_PATH)/configs/modprobe/modules.options:$(TARGET_COPY_OUT_RAMDISK)/lib/modules/modules.options \
     $(DEVICE_PATH)/configs/modprobe/modules.options:$(TARGET_COPY_OUT_VENDOR_DLKM)/lib/modules/modules.options
 
+PRODUCT_PACKAGES += \
+    modprobe_kernel
+
 # Overlays
 DEVICE_PACKAGE_OVERLAYS += \
     $(DEVICE_PATH)/overlays/overlay
