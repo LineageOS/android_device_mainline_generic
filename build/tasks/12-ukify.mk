@@ -22,7 +22,7 @@ UKIFY_DEPS := \
 
 # $(1): output file
 define make-ukify-out
-	if [ -f "$(CMDLINE_EXTRA_TXT)" ]; then \
+	if [ ! -f "$(CMDLINE_EXTRA_TXT)" ]; then \
 		echo "WARNING: $(CMDLINE_EXTRA_TXT) does not exist yet. Extra parameters are required to boot up, and you can put these on that file."; \
 	fi
 	PATH=/usr/local/bin:/usr/bin:/bin ukify build --efi-arch=$(UKIFY_EFI_ARCH) --linux=$(PRODUCT_OUT)/kernel --initrd=$(INSTALLED_RAMDISK_ALL_COMBINED_TARGET) --cmdline="$(BOARD_KERNEL_CMDLINE) $$(cat $(CMDLINE_EXTRA_TXT) 2>/dev/null)" --output=$(1)
