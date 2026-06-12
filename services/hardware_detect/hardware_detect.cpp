@@ -507,8 +507,6 @@ void DrmUnknownRender(const std::string& render_name) {
     LOG(WARNING) << "DRM render is not directly supported";
 
     const std::unordered_map<std::string, HwVulkan> kRenderNameToHwVulkanMap = {
-        {"apple", HwVulkan::Asahi},
-        {"asahi", HwVulkan::Asahi},
         {"panfrost", HwVulkan::Panfrost},
         {"panthor", HwVulkan::Panfrost},
         {"v3d", HwVulkan::Broadcom},
@@ -522,6 +520,12 @@ void DrmAmdgpuRender(void) {
     gMinigbmGenericBackend = MinigbmGenericBackend::DumbGeneric;
     gGlesVersion = kGlesVersion32;
     gHwVulkan = HwVulkan::Radeon;
+}
+
+void DrmAsahiRender(void) {
+    gMinigbmGenericBackend = MinigbmGenericBackend::GbmMesa;
+    gGlesVersion = kGlesVersion32;
+    gHwVulkan = HwVulkan::Asahi;
 }
 
 void DrmI915(int fd, bool is_render) {
@@ -880,6 +884,9 @@ void DetectGraphics(void) {
         DrmSysfbCard();
     } else if (card_name == "amdgpu") {
         // nothing
+    } else if (card_name == "apple") {
+        // Not checking with "asahi" here, because it seems like it appears when simpledrm is enabled, and does not work with 3D graphics
+        // nothing
     } else if (card_name == "i915") {
         DrmI915(card_fd, false);
     } else if (card_name == "msm") {
@@ -903,6 +910,8 @@ void DetectGraphics(void) {
         LOG(INFO) << "No DRM render found";
     } else if (render_name == "amdgpu") {
         DrmAmdgpuRender();
+    } else if (render_name == "apple" || render_name == "asahi") {
+        DrmAsahiRender();
     } else if (render_name == "i915") {
         DrmI915(render_fd, true);
     } else if (render_name == "msm") {
