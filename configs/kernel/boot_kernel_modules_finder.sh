@@ -97,7 +97,7 @@ fs/nls"
 
 for mod in $MODULES; do
     mod_filename="${mod}.ko"
-    mod_find=$(find ${KERNEL_MODULES_OUT}/kernel/ -name $mod_filename)
+    mod_find=$(find ${KERNEL_MODULES_OUT}/ -name $mod_filename)
     if [ "$mod_find" ]; then
         RESULT+=" $(basename $mod_find)"
     else
