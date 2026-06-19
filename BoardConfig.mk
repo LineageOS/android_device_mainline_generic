@@ -78,6 +78,9 @@ BOARD_VENDOR_RAMDISK_KERNEL_MODULES_LOAD := $(shell cat $(DEVICE_PATH)/configs/m
 BOOT_KERNEL_MODULES_FINDER := $(DEVICE_PATH)/configs/kernel/boot_kernel_modules_finder.sh
 TARGET_AUTO_COLLECT_KERNEL_MODULE_DEPS := true
 
+TARGET_KERNEL_EXT_MODULES += \
+    kernel/modules/linux-apfs-rw
+
 # OTA
 TARGET_SKIP_OTA_PACKAGE := true
 
