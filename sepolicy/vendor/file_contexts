@@ -2,5 +2,6 @@
 /vendor/etc/overlay-product-etc-init(/.*)?		u:object_r:system_file:s0
 
 # Executables
-/vendor/bin/get_display_ppi		u:object_r:vendor_get_display_ppi_exec:s0
-/vendor/bin/hardware_detect		u:object_r:vendor_hardware_detect_exec:s0
+/vendor/bin/hw/android\.hardware\.health-service\.generic		u:object_r:hal_health_default_exec:s0
+/vendor/bin/get_display_ppi						u:object_r:vendor_get_display_ppi_exec:s0
+/vendor/bin/hardware_detect						u:object_r:vendor_hardware_detect_exec:s0
