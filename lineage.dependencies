@@ -4,6 +4,10 @@
     "target_path": "device/mainline/common"
   },
   {
+    "repository": "android_hardware_intel_sensors-iio",
+    "target_path": "hardware/intel/sensors-iio"
+  },
+  {
     "repository": "android_kernel_mainline_configs",
     "target_path": "kernel/mainline/configs"
   },
