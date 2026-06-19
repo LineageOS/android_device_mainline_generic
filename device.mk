@@ -16,6 +16,7 @@ TARGET_GRAPHICS_COMPOSER_HAL := custom
 TARGET_HEALTH_HAL := custom
 TARGET_HOSTAPD_AND_WPA_SUPPLICANT_FORM := legacy
 TARGET_MESA_DO_NOT_SET_AS_DEFAULT := true
+TARGET_SENSORS_HAL := iio
 TARGET_SUPPORTS_SUSPEND := false
 TARGET_USES_TABLET_INPUT_AS_TOUCHSCREEN := true
 include device/mainline/common/optional/options.mk
@@ -177,6 +178,20 @@ PRODUCT_COPY_FILES += \
 
 # Scoped Storage
 $(call inherit-product, $(SRC_TARGET_DIR)/product/emulated_storage.mk)
+
+# Sensors
+PRODUCT_COPY_FILES += \
+    $(DEVICE_PATH)/configs/misc/60-sensor.hwdb:$(TARGET_COPY_OUT_VENDOR)/etc/60-sensor.hwdb
+
+PRODUCT_PACKAGES += \
+    android.hardware.sensor.accelerometer.prebuilt.xml \
+    android.hardware.sensor.compass.prebuilt.xml \
+    android.hardware.sensor.gyroscope.prebuilt.xml \
+    android.hardware.sensor.light.prebuilt.xml \
+    android.hardware.sensor.proximity.prebuilt.xml \
+    android.hardware.sensor.relative_humidity.prebuilt.xml
+
+$(call soong_config_set_bool,intel_sensors_iio,use_libhwdb_sensor,true)
 
 # Shipping API level
 PRODUCT_SHIPPING_API_LEVEL := 33
