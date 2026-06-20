@@ -160,6 +160,9 @@ PRODUCT_PACKAGES += \
 DEVICE_PACKAGE_OVERLAYS += \
     $(DEVICE_PATH)/overlays/overlay
 
+PRODUCT_PACKAGE_OVERLAYS += \
+    $(DEVICE_PATH)/overlays/product_overlay-tablet
+
 PRODUCT_PACKAGES += \
     MainlineGenericWifiOverlay
 
