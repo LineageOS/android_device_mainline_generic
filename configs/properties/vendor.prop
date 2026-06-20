@@ -15,5 +15,8 @@ ro.surface_flinger.enable_frame_rate_override=false
 # Input (tablet2multitouch)
 vendor.tablet2multitouch.device_names=QEMU QEMU USB Tablet,QEMU Virtio Tablet
 
+# VirtWifi
+ro.boot.wifi_mac_prefix=5554
+
 # ZRAM
 persist.sys.zram_enabled=1

@@ -73,3 +73,7 @@ on init
 
 on late-fs
     mount_all --late
+
+# VirtWifi
+on post-fs-data && property:ro.boot.wifi_impl=virt_wifi
+    start setup_wifi
