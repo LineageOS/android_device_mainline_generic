@@ -195,3 +195,7 @@ PRODUCT_COPY_FILES += \
 
 # Virtualization
 $(call inherit-product, packages/modules/Virtualization/apex/product_packages.mk)
+
+# Wi-Fi
+PRODUCT_COPY_FILES += \
+    $(DEVICE_PATH)/configs/wifi/wpa_supplicant.conf:$(TARGET_COPY_OUT_VENDOR)/etc/wpa_supplicant.conf
