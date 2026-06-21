@@ -19,8 +19,8 @@ INSTALLED_LIVEISOIMAGE_TARGET_INCLUDE_FILES := \
 INSTALLED_LIVEISOIMAGE_TARGET_DEPS := \
 	$(INSTALLED_LIVEISOIMAGE_TARGET_INCLUDE_FILES)
 
-ifeq ($(TARGET_LINUX_FIRMWARE_REPO),)
-$(warning TARGET_LINUX_FIRMWARE_REPO is empty, please set it to path to linux-firmware repo)
+ifeq ($(TARGET_LINUX_FIRMWARE_IMAGE),)
+$(warning TARGET_LINUX_FIRMWARE_IMAGE is empty, please set it to path to image with linux-firmware on its root)
 endif
 
 ifeq ($(TARGET_BOOT_MANAGER),grub)
@@ -52,9 +52,8 @@ define make-liveisoimage-target
 		-o $(1) \
 		--xorriso=$(BOOTMGR_XORRISO_EXEC) \
 		$(GRUB_WORKDIR_LIVE)/fsroot \
-		$(if $(TARGET_LINUX_FIRMWARE_REPO),\
-			$(foreach i,$(wildcard $(TARGET_LINUX_FIRMWARE_REPO)/*),\
-				$(space)/firmware/$(notdir $(i))=$(i)))
+		$(if $(TARGET_LINUX_FIRMWARE_IMAGE),\
+			/$(BOOTMGR_ANDROID_DIR_NAME)/firmware.img=$(TARGET_LINUX_FIRMWARE_IMAGE))
 endef
 
 endif # TARGET_GRUB_ARCH
