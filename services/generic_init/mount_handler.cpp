@@ -55,9 +55,10 @@ std::string config_android_dir;
 
 enum class ImageType {
     UNKNOWN = 0,
-    INITRD = 1,
-    SYSTEM = 2,
-    USERDATA = 3,
+    FIRMWARE = 1,
+    INITRD = 2,
+    SYSTEM = 3,
+    USERDATA = 4,
 };
 
 struct BlockDeviceInfo {
@@ -90,7 +91,7 @@ using BlockDevices = std::unordered_map<std::string, std::shared_ptr<BlockDevice
 std::shared_ptr<BlockDevices> block_devices;
 
 bool need_android_dir = false;
-bool need_firmware_dir = true;
+bool need_firmware_dir = false;
 bool need_mount_cache = false;
 
 constexpr char kMountOptsRo[] = "";
@@ -100,6 +101,10 @@ Fstab addon_fstab;
 
 std::shared_ptr<BlockDeviceInfo> block_device_for_android_dir = nullptr;
 std::shared_ptr<BlockDeviceInfo> block_device_for_firmware_dir = nullptr;
+
+const std::list<std::string> fs_types_for_firmware = {
+    "ext4", "f2fs", "erofs", "squashfs", "vfat"
+};
 
 const std::list<std::string> fs_types_for_system_partitions = {
     "ext4", "erofs", "squashfs"
@@ -124,6 +129,10 @@ const std::list<std::string> possible_subdirs_in_system = {
 
 const std::list<std::string> possible_subdirs_in_vendor = {
     "odm", "odm_dlkm", "vendor_dlkm"
+};
+
+const std::list<std::string> possible_firmware_image_names = {
+    "firmware", "linux-firmware",
 };
 
 const std::list<std::string> possible_initrd_image_names = {
@@ -156,9 +165,11 @@ constexpr char kMountSystemParam[] = "mount_system";
 constexpr char kMountUserdataParam[] = "mount_userdata";
 
 enum class MountFirmwareParam {
-    ALL_POSSIBLE = 0,
+    ALL_POSSIBLE_DIRS = 0,
     DISABLE = 1,
     ONLY_ANDROID_DIR = 2,
+    IMAGE = 3,
+    IMAGE_COPY_TO_RAM = 4,
 };
 
 enum class MountSystemParam {
@@ -176,11 +187,13 @@ enum class MountUserdataParam {
 };
 
 const std::unordered_map<std::string, MountFirmwareParam> kStringToMountFirmwareParamMap = {
-    {"all_possible", MountFirmwareParam::ALL_POSSIBLE},
+    {"all_possible_dirs", MountFirmwareParam::ALL_POSSIBLE_DIRS},
     {"disable", MountFirmwareParam::DISABLE},
     {"false", MountFirmwareParam::DISABLE},
+    {"img", MountFirmwareParam::IMAGE},
+    {"img_ram", MountFirmwareParam::IMAGE_COPY_TO_RAM},
     {"only_android_dir", MountFirmwareParam::ONLY_ANDROID_DIR},
-    {"true", MountFirmwareParam::ALL_POSSIBLE},
+    {"true", MountFirmwareParam::ALL_POSSIBLE_DIRS},
 };
 
 const std::unordered_map<std::string, MountSystemParam> kStringToMountSystemParamMap = {
@@ -197,9 +210,11 @@ const std::unordered_map<std::string, MountUserdataParam> kStringToMountUserdata
     {"tmpfs", MountUserdataParam::TMPFS},
 };
 
-MountFirmwareParam param_mount_firmware = MountFirmwareParam::ALL_POSSIBLE;
+MountFirmwareParam param_mount_firmware = MountFirmwareParam::ALL_POSSIBLE_DIRS;
 MountSystemParam param_mount_system = MountSystemParam::STANDARD_PARTITIONS_WITH_PARTNAME;
 MountUserdataParam param_mount_userdata = MountUserdataParam::STANDARD_PARTITIONS_WITH_PARTNAME;
+
+constexpr char kFirmwareFstabMountPoint[] = "/mnt/vendor/firmware";
 
 const std::string kAddonFstabPrefix = "fstab.generic_init.addon.";
 const std::string kAndroidMountTarget = "/mnt/android";
@@ -292,11 +307,14 @@ void ParseConfig(void) {
         LOG(INFO) << "Parameter " << kMountUserdataParam << " is unset";
     }
 
-    if (param_mount_firmware != MountFirmwareParam::DISABLE) {
+    if (param_mount_firmware == MountFirmwareParam::ALL_POSSIBLE_DIRS ||
+        param_mount_firmware == MountFirmwareParam::ONLY_ANDROID_DIR) {
         need_firmware_dir = true;
     }
 
-    if (param_mount_system == MountSystemParam::IMAGES ||
+    if (param_mount_firmware == MountFirmwareParam::IMAGE ||
+        param_mount_firmware == MountFirmwareParam::IMAGE_COPY_TO_RAM ||
+        param_mount_system == MountSystemParam::IMAGES ||
         param_mount_system == MountSystemParam::IMAGES_COPY_TO_RAM ||
         param_mount_userdata == MountUserdataParam::IMAGES ||
         param_mount_userdata == MountUserdataParam::BIND_MOUNT_DIR) {
@@ -346,6 +364,11 @@ std::string TryMountAndReturnFsType(const std::string& devpath, unsigned long mo
 ImageType GetImageTypeFromFilename(const std::string& filename) {
     std::string name = filename.substr(0, filename.find_last_of('.'));
 
+    if (std::find(possible_firmware_image_names.begin(),
+                  possible_firmware_image_names.end(),
+                  name) != possible_firmware_image_names.end()) {
+        return ImageType::FIRMWARE;
+    }
     if (std::find(possible_initrd_image_names.begin(),
                   possible_initrd_image_names.end(),
                   name) != possible_initrd_image_names.end()) {
@@ -759,18 +782,29 @@ void OnPostBlockDevices(void) {
         }
     }
 
-    if (param_mount_system == MountSystemParam::IMAGES ||
+    if (param_mount_firmware == MountFirmwareParam::IMAGE ||
+        param_mount_firmware == MountFirmwareParam::IMAGE_COPY_TO_RAM ||
+        param_mount_system == MountSystemParam::IMAGES ||
         param_mount_system == MountSystemParam::IMAGES_COPY_TO_RAM ||
         param_mount_userdata == MountUserdataParam::IMAGES) {
         std::shared_ptr<BlockDeviceInfo> bdinfo = block_device_for_android_dir;
         std::list<std::pair<std::string, std::string>> partition_img_list;
+        std::string firmware_img;
 
         for (const auto& [image_type, image_name] : bdinfo->android_dir_have_images) {
             std::string image_partition = image_name.substr(0, image_name.find_last_of('.'));
             std::string image_src = android_dir_path + "/" + image_name;
 
-            if (image_type != ImageType::SYSTEM &&
+            if (image_type != ImageType::FIRMWARE &&
+                image_type != ImageType::SYSTEM &&
                 image_type != ImageType::USERDATA) {
+                continue;
+            }
+
+            // Ignore firmware images while not mounting system from images
+            if (image_type == ImageType::FIRMWARE &&
+                param_mount_firmware != MountFirmwareParam::IMAGE &&
+                param_mount_firmware != MountFirmwareParam::IMAGE_COPY_TO_RAM) {
                 continue;
             }
 
@@ -787,8 +821,10 @@ void OnPostBlockDevices(void) {
                 continue;
             }
 
-            if (image_type == ImageType::SYSTEM &&
-                param_mount_system == MountSystemParam::IMAGES_COPY_TO_RAM) {
+            if ((image_type == ImageType::FIRMWARE &&
+                param_mount_firmware == MountFirmwareParam::IMAGE_COPY_TO_RAM) ||
+                (image_type == ImageType::SYSTEM &&
+                param_mount_system == MountSystemParam::IMAGES_COPY_TO_RAM)) {
                 LOG(INFO) << "Copying image " << image_name << " to RAM";
                 std::string image_dst = kTmpfsImgDir + "/" + image_name;
                 fs::copy(image_src, image_dst, ec);
@@ -796,13 +832,39 @@ void OnPostBlockDevices(void) {
                 image_src = image_dst;
             }
 
-            partition_img_list.push_back({image_partition, image_src});
+            if (image_type == ImageType::FIRMWARE) {
+                firmware_img = image_src;
+            } else {
+                partition_img_list.push_back({image_partition, image_src});
+            }
+        }
+
+        if (!firmware_img.empty()) {
+            FstabEntry entry = {
+                .mount_point = kFirmwareFstabMountPoint,
+                .fs_mgr_flags = {
+                    .no_fail = true,
+                    .first_stage_mount = true
+                }
+            };
+            if (!bdinfo->rw) entry.flags |= MS_RDONLY;
+
+            entry.blk_device = SetupLoopDevice(firmware_img, bdinfo->rw);
+            if (entry.blk_device.empty()) {
+                LOG(FATAL) << "Failed to setup loop device for image " << firmware_img;
+            }
+
+            for (const auto& fs_type : fs_types_for_firmware) {
+                entry.fs_type = fs_type;
+                fstab.push_back(entry);
+            }
         }
 
         for (const auto& [part, img] : partition_img_list) {
             if (part == "cache" && !need_mount_cache) continue;
 
             FstabEntry entry = {
+                .mount_point = kFirmwareFstabMountPoint,
                 .fs_mgr_flags = {
                     .first_stage_mount = true
                 }
@@ -852,7 +914,8 @@ void OnPostBlockDevices(void) {
         }
     }
 
-    if (need_firmware_dir) {
+    if (param_mount_firmware == MountFirmwareParam::ALL_POSSIBLE_DIRS ||
+        param_mount_firmware == MountFirmwareParam::ONLY_ANDROID_DIR) {
         std::shared_ptr<BlockDeviceInfo> bdinfo = block_device_for_firmware_dir;
         if (bdinfo == block_device_for_android_dir) {
             firmware_dir_path = kAndroidMountTarget + "/" + bdinfo->have_firmware_dir;
@@ -866,7 +929,7 @@ void OnPostBlockDevices(void) {
 
         FstabEntry entry = {
             .blk_device = firmware_dir_path,
-            .mount_point = "/mnt/vendor/firmware",
+            .mount_point = kFirmwareFstabMountPoint,
             .fs_type = "none",
             .flags = MS_BIND,
             .fs_mgr_flags = {
