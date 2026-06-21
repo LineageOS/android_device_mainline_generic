@@ -3,5 +3,5 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-firmware_directories /odm/firmware/ /mnt/vendor/firmware/
+firmware_directories /odm/firmware/ /mnt/vendor/firmware/ /mnt/vendor/firmware/mediatek/
 modalias_handling enabled
