@@ -861,7 +861,7 @@ void OnPostBlockDevices(void) {
     // Unmount block device for android dir if it's no longer used
     // Allowing live boot users to eject the boot media afterwards
     if (umount(kAndroidMountTarget.c_str()) == 0) {
-        PLOG(INFO) << "umount " << kAndroidMountTarget << " successfully";
+        LOG(INFO) << "umount " << kAndroidMountTarget << " successfully";
     }
 
     if (!addon_fstab.empty()) {
