@@ -53,6 +53,13 @@ namespace {
 
 std::string config_android_dir;
 
+enum class ImageType {
+    UNKNOWN = 0,
+    INITRD = 1,
+    SYSTEM = 2,
+    USERDATA = 3,
+};
+
 struct BlockDeviceInfo {
     // uevent fields
     std::string devname;
@@ -74,7 +81,7 @@ struct BlockDeviceInfo {
 
     std::string have_android_dir;
     std::string have_firmware_dir;
-    std::vector<std::string> android_dir_have_images;
+    std::vector<std::pair<ImageType, std::string>> android_dir_have_images;
     std::vector<std::string> android_dir_have_subdirs;
 };
 
@@ -117,6 +124,10 @@ const std::list<std::string> possible_subdirs_in_system = {
 
 const std::list<std::string> possible_subdirs_in_vendor = {
     "odm", "odm_dlkm", "vendor_dlkm"
+};
+
+const std::list<std::string> possible_initrd_image_names = {
+    "initrd", "ramdisk",
 };
 
 std::map<std::string, std::shared_ptr<BlockDeviceInfo>> android_system_part_to_bdev_map = {
@@ -332,6 +343,27 @@ std::string TryMountAndReturnFsType(const std::string& devpath, unsigned long mo
     return "";
 }
 
+ImageType GetImageTypeFromFilename(const std::string& filename) {
+    std::string name = filename.substr(0, filename.find_last_of('.'));
+
+    if (std::find(possible_initrd_image_names.begin(),
+                  possible_initrd_image_names.end(),
+                  name) != possible_initrd_image_names.end()) {
+        return ImageType::INITRD;
+    }
+    if (std::find(android_system_partitions.begin(),
+                  android_system_partitions.end(),
+                  name) != android_system_partitions.end()) {
+        return ImageType::SYSTEM;
+    }
+    if (std::find(android_userdata_partitions.begin(),
+                  android_userdata_partitions.end(),
+                  name) != android_userdata_partitions.end()) {
+        return ImageType::USERDATA;
+    }
+    return ImageType::UNKNOWN;
+}
+
 void ParseBlockDevice_CheckDirs(BlockDeviceInfo* info) {
     std::string& devpath = info->devpath;
 
@@ -353,8 +385,7 @@ void ParseBlockDevice_CheckDirs(BlockDeviceInfo* info) {
         for (const auto& entry : fs::directory_iterator(kTryMountTarget + "/" + info->have_android_dir)) {
             std::string name = entry.path().filename();
             if (entry.is_regular_file() && EndsWithIgnoreCase(name, kImageSuffix)) {
-                if (StartsWithIgnoreCase(name, "initrd") || StartsWithIgnoreCase(name, "ramdisk")) continue;
-                info->android_dir_have_images.push_back(name);
+                info->android_dir_have_images.push_back({GetImageTypeFromFilename(name), name});
             } else if (entry.is_directory() && name != "firmware") {
                 info->android_dir_have_subdirs.push_back(name);
             }
@@ -734,46 +765,34 @@ void OnPostBlockDevices(void) {
         std::shared_ptr<BlockDeviceInfo> bdinfo = block_device_for_android_dir;
         std::list<std::pair<std::string, std::string>> partition_img_list;
 
-        for (const auto& image : bdinfo->android_dir_have_images) {
-            std::string image_partition = image.substr(0, image.find_last_of('.'));
-            std::string image_src = android_dir_path + "/" + image;
+        for (const auto& [image_type, image_name] : bdinfo->android_dir_have_images) {
+            std::string image_partition = image_name.substr(0, image_name.find_last_of('.'));
+            std::string image_src = android_dir_path + "/" + image_name;
 
-            // Ignore images that matches with no partition
-            if (std::find(android_system_partitions.begin(),
-                           android_system_partitions.end(),
-                           image_partition)
-                           == android_system_partitions.end() &&
-                std::find(android_userdata_partitions.begin(),
-                           android_userdata_partitions.end(),
-                           image_partition)
-                           == android_userdata_partitions.end()) {
+            if (image_type != ImageType::SYSTEM &&
+                image_type != ImageType::USERDATA) {
                 continue;
             }
 
             // Ignore system images while not mounting system from images
-            if (param_mount_system != MountSystemParam::IMAGES &&
-                param_mount_system != MountSystemParam::IMAGES_COPY_TO_RAM &&
-                (std::find(android_system_partitions.begin(),
-                           android_system_partitions.end(),
-                           image_partition)
-                           != android_system_partitions.end())) {
+            if (image_type == ImageType::SYSTEM &&
+                param_mount_system != MountSystemParam::IMAGES &&
+                param_mount_system != MountSystemParam::IMAGES_COPY_TO_RAM) {
                 continue;
             }
 
             // Ignore userdata images while not mounting userdata from images
-            if (param_mount_userdata != MountUserdataParam::IMAGES &&
-                (std::find(android_userdata_partitions.begin(),
-                           android_userdata_partitions.end(),
-                           image_partition)
-                           != android_userdata_partitions.end())) {
+            if (image_type == ImageType::USERDATA &&
+                param_mount_userdata != MountUserdataParam::IMAGES) {
                 continue;
             }
 
-            if (param_mount_system == MountSystemParam::IMAGES_COPY_TO_RAM) {
-                LOG(INFO) << "Copying image " << image << " to RAM";
-                std::string image_dst = kTmpfsImgDir + "/" + image;
+            if (image_type == ImageType::SYSTEM &&
+                param_mount_system == MountSystemParam::IMAGES_COPY_TO_RAM) {
+                LOG(INFO) << "Copying image " << image_name << " to RAM";
+                std::string image_dst = kTmpfsImgDir + "/" + image_name;
                 fs::copy(image_src, image_dst, ec);
-                if (ec) LOG(FATAL) << "Failed to copy image " << image << " to RAM";
+                if (ec) LOG(FATAL) << "Failed to copy image " << image_name << " to RAM";
                 image_src = image_dst;
             }
 
