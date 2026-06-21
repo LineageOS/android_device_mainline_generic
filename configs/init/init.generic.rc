@@ -74,6 +74,16 @@ on init
 on late-fs
     mount_all --late
 
+# Sensors
+service vendor.sensors-hal-multihal /vendor/bin/hw/android.hardware.sensors-service.multihal
+    override
+    class hal
+    user root
+    group root system wakelock context_hub input uhid
+    task_profiles ServiceCapacityLow
+    capabilities BLOCK_SUSPEND
+    rlimit rtprio 10 10
+
 # VirtWifi
 on post-fs-data && property:ro.boot.wifi_impl=virt_wifi
     start setup_wifi
