@@ -18,6 +18,7 @@
 #include <android-base/file.h>
 #include <android-base/logging.h>
 #include <android-base/properties.h>
+#include <android-base/strings.h>
 
 #include <i915_drm.h>
 #include <virtgpu_drm.h>
@@ -66,6 +67,9 @@ constexpr char kBootGraphicsProp[] = "ro.boot.graphics";
 constexpr char kBootOdmSkuProp[] = "ro.boot.product.hardware.sku";
 constexpr char kBootUseFbDisplayProp[] = "ro.boot.use_fb_display";
 
+constexpr char kBootPreferDrmCardNameProp[] = "ro.boot.prefer_drm_card_name";
+constexpr char kBootPreferDrmRenderNameProp[] = "ro.boot.prefer_drm_render_name";
+
 constexpr char kHwcDrmDeviceProp[] = "vendor.hwc.drm.device";
 
 constexpr char kMinigbmGenericBackendProp[] = "vendor.minigbm.generic_backend";
@@ -85,6 +89,21 @@ const std::string kVintfSrcDir = "/vendor/etc/vintf_src/";
 
 const std::set<std::string> kDrmSysfbNames = {"efidrm", "simpledrm", "vesadrm"};
 const std::set<std::string> kMustUseFbDisplayCards = {};
+
+struct DrmDevice {
+    std::string path;
+    bool is_render;
+    int fd;
+    std::string name;
+
+    drmDevicePtr drm_device;
+
+    // card specific
+    bool have_connector_connected;
+    bool is_sysfb;
+    std::string card_have_render_path;
+    drmModeRes* drm_mode_res;
+};
 
 struct HalService {
     std::string name;
@@ -690,19 +709,14 @@ void DrmVmwgfxRender(void) {
     }
 }
 
-bool IsDrmMultiplePlanesSupported(int fd) {
-    drmModePlaneRes* planeRes = drmModeGetPlaneResources(fd);
+bool IsDrmMultiplePlanesSupported(const DrmDevice& card) {
+    drmModePlaneRes* planeRes = drmModeGetPlaneResources(card.fd);
     if (!planeRes) {
         LOG(ERROR) << "Failed to get plane resources";
         return false;
     }
 
-    drmModeRes* res = drmModeGetResources(fd);
-    if (!res) {
-        LOG(ERROR) << "Failed to get DRM resources";
-        drmModeFreePlaneResources(planeRes);
-        return false;
-    }
+    drmModeRes* res = card.drm_mode_res;
 
     bool supportsMultiplePlanes = false;
 
@@ -711,7 +725,7 @@ bool IsDrmMultiplePlanesSupported(int fd) {
         int planeCountForCrtc = 0;
 
         for (uint32_t i = 0; i < planeRes->count_planes; ++i) {
-            drmModePlane* plane = drmModeGetPlane(fd, planeRes->planes[i]);
+            drmModePlane* plane = drmModeGetPlane(card.fd, planeRes->planes[i]);
             if (!plane) continue;
 
             if (plane->possible_crtcs & (1 << crtc_idx)) {
@@ -727,13 +741,12 @@ bool IsDrmMultiplePlanesSupported(int fd) {
         }
     }
 
-    drmModeFreeResources(res);
     drmModeFreePlaneResources(planeRes);
 
     return supportsMultiplePlanes;
 }
 
-void SetDefaultsForDrmDisplay(int card_fd, int render_fd) {
+void SetDefaultsForDrmDisplay(const DrmDevice& card, const std::optional<DrmDevice>& render) {
     /*
      * Gralloc
      *
@@ -755,9 +768,9 @@ void SetDefaultsForDrmDisplay(int card_fd, int render_fd) {
      * drm_hwcomposer-upstream for full-fledged support
      * (however we have some hacks in there too)
      */
-    if (!drmSetClientCap(card_fd, DRM_CLIENT_CAP_ATOMIC, 1)) {
+    if (!drmSetClientCap(card.fd, DRM_CLIENT_CAP_ATOMIC, 1)) {
         gHwcHalService = HwcHalServices::DrmUpstream;
-        if (!IsDrmMultiplePlanesSupported(card_fd)) {
+        if (!IsDrmMultiplePlanesSupported(card)) {
             SetProperty("ro.vendor.hwc.drm.disable_planes", "1");
         }
     } else {
@@ -774,165 +787,274 @@ void SetDefaultsForDrmDisplay(int card_fd, int render_fd) {
      * performance wise it's bit better than Swiftshader,
      * but compatibility wise is still not as good as Swiftshader
      */
-    if (render_fd >= 0) {
+    if (render.has_value()) {
         gHwEgl = HwEgl::Mesa;
     } else {
         UseSwiftshaderGraphics();
     }
 }
 
-void DetectGraphics(void) {
-    std::string card_path, render_path;
-    int card_fd = -1, render_fd = -1;
-    drmVersionPtr card_version = nullptr, render_version = nullptr;
-    bool card_is_sysfb = false;
-    std::string card_name, render_name;
-    std::list<unsigned int> drm_sysfb_cards;
+void CleanupDrmDevice(DrmDevice& dev) {
+    if (dev.drm_device) drmFreeDevice(&dev.drm_device);
+    if (dev.drm_mode_res) drmModeFreeResources(dev.drm_mode_res);
+    if (dev.fd >= 0) close(dev.fd);
+}
 
+bool IsDrmCardWithConnectorConnected(const DrmDevice& dev) {
+    drmModeRes* resources = dev.drm_mode_res;
+    int fd = dev.fd;
+    bool result = false;
+
+    for (int i = 0; i < resources->count_connectors; i++) {
+        drmModeConnector *conn =
+            drmModeGetConnector(fd, resources->connectors[i]);
+
+        if (!conn) continue;
+
+        if (conn->connection == DRM_MODE_CONNECTED && conn->count_modes > 0) {
+            result = true;
+        }
+
+        drmModeFreeConnector(conn);
+
+        if (result) break;
+    }
+
+    return result;
+}
+
+std::pair<std::optional<DrmDevice>, std::optional<DrmDevice>> GetDrmCardRenderDevicePair(void) {
+    std::vector<fs::directory_entry> all_entries;
+    for (const auto& entry : fs::directory_iterator("/dev/dri/")) {
+        if (!entry.is_other()) continue;
+        std::string name = entry.path().filename();
+        if (StartsWith(name, "card") || StartsWith(name, "renderD")) {
+            all_entries.push_back(entry);
+        }
+    }
+    std::sort(all_entries.begin(), all_entries.end(),
+              [](const fs::directory_entry& a, const fs::directory_entry& b) {
+        return a.path().filename() < b.path().filename();
+    });
+
+    std::vector<DrmDevice> all_cards, all_renders;
+    for (const auto& entry : all_entries) {
+        DrmDevice dev;
+        dev.is_render = StartsWith(std::string(entry.path().filename()), "renderD");
+        dev.path = entry.path();
+
+        dev.fd = open(dev.path.c_str(), O_RDONLY);
+        if (dev.fd < 0) {
+            LOG(ERROR) << "Unable to open DRM device " << dev.path;
+            continue;
+        }
+
+        drmVersionPtr version = drmGetVersion(dev.fd);
+        if (!version) {
+            LOG(ERROR) << "Failed to get DRM version for " << dev.path;
+            close(dev.fd);
+            continue;
+        }
+        dev.name = std::string(version->name, version->name_len);
+        LOG(INFO) << "DRM device " << dev.path << " is " << dev.name;
+        drmFreeVersion(version);
+
+        if (drmGetDevice(dev.fd, &dev.drm_device)) {
+            LOG(ERROR) << "Failed to get DRM device information for " << dev.path;
+            close(dev.fd);
+            continue;
+        }
+
+        if (!dev.is_render) {
+            dev.drm_mode_res = drmModeGetResources(dev.fd);
+            if (!dev.drm_mode_res) {
+                LOG(ERROR) << "Failed to get DRM mode resources for " << dev.path;
+                close(dev.fd);
+                continue;
+            }
+
+            dev.have_connector_connected = IsDrmCardWithConnectorConnected(dev);
+            if (!dev.have_connector_connected) {
+                LOG(INFO) << "DRM card " << dev.path << " have no connector connected";
+            }
+
+            if (kDrmSysfbNames.find(dev.name) != kDrmSysfbNames.end()) {
+                dev.is_sysfb = true;
+            }
+
+            all_cards.push_back(dev);
+        } else {
+            all_renders.push_back(dev);
+        }
+    }
+
+    if (all_cards.empty()) {
+        LOG(ERROR) << "No DRM card found";
+        return {};
+    }
+
+    if (all_renders.empty()) {
+        LOG(INFO) << "No DRM render found";
+    } else {
+        for (const auto& render : all_renders) {
+            for (auto& card : all_cards) {
+                if (drmDevicesEqual(render.drm_device, card.drm_device)) {
+                    card.card_have_render_path = render.path;
+                }
+            }
+        }
+    }
+
+    std::string result_card_path, result_render_path;
+
+    for (const auto& card : all_cards) {
+        if (card.is_sysfb) continue;
+        if (!card.have_connector_connected) continue;
+        if (card.card_have_render_path.empty()) continue;
+        result_card_path = card.path;
+        result_render_path = card.card_have_render_path;
+        goto out;
+    }
+    for (const auto& card : all_cards) {
+        if (card.is_sysfb) continue;
+        if (!card.have_connector_connected) continue;
+        result_card_path = card.path;
+        goto out;
+    }
+    for (const auto& card : all_cards) {
+        if (card.is_sysfb) continue;
+        result_card_path = card.path;
+        goto out;
+    }
+    result_card_path = all_cards.begin()->path;
+
+out:
+    auto user_preferred_card_name = GetProperty(kBootPreferDrmCardNameProp, "");
+    if (!user_preferred_card_name.empty()) {
+        for (const auto& card : all_cards) {
+            if (card.name != user_preferred_card_name) continue;
+            result_card_path = card.path;
+            if (!card.card_have_render_path.empty()) {
+                result_render_path = card.card_have_render_path;
+            }
+            break;
+        }
+    }
+    auto user_preferred_render_name = GetProperty(kBootPreferDrmRenderNameProp, "");
+    if (!user_preferred_render_name.empty()) {
+        for (const auto& render : all_renders) {
+            if (render.name != user_preferred_render_name) continue;
+            result_render_path = render.path;
+            break;
+        }
+    }
+
+    LOG(INFO) << "Select DRM card " << result_card_path
+              << " and DRM render " << result_render_path.empty()
+              ? "(none)" : result_render_path;
+    std::optional<DrmDevice> result_card, result_render;
+    for (auto& card : all_cards) {
+        if (card.path == result_card_path) {
+            result_card.emplace(std::move(card));
+            continue;
+        }
+        CleanupDrmDevice(card);
+    }
+    for (auto& render : all_renders) {
+        if (render.path == result_render_path) {
+            result_render.emplace(std::move(render));
+            continue;
+        }
+        CleanupDrmDevice(render);
+    }
+    return {result_card, result_render};
+}
+
+void DetectGraphics(void) {
     if (IsForcedFramebufferDisplay()) {
         LOG(INFO) << "Forced using framebuffer display";
         SetupFramebufferDisplay();
         return;
     }
 
-    for (uint32_t i = 0; i < DRM_MAX_MINOR; i++) {
-        card_path = "/dev/dri/card" + std::to_string(i);
-        card_fd = open(card_path.c_str(), O_RDONLY);
-        if (card_fd >= 0) {
-            card_version = drmGetVersion(card_fd);
-            if (!card_version) {
-                LOG(ERROR) << "Failed to get DRM version for card " << std::to_string(i);
-                close(card_fd);
-                card_fd = -1;
-                continue;
-            }
+    auto drm_pair = GetDrmCardRenderDevicePair();
+    auto drm_card = std::move(drm_pair.first);
+    auto drm_render = std::move(drm_pair.second);
 
-            card_name = std::string(card_version->name, card_version->name_len);
-            LOG(INFO) << "Card " << std::to_string(i) << " is " << card_name;
-
-            // Save DRM sysfb card, and close it for now
-            if (kDrmSysfbNames.find(card_name) != kDrmSysfbNames.end()) {
-                drm_sysfb_cards.push_back(i);
-                drmFreeVersion(card_version);
-                close(card_fd);
-                card_fd = -1;
-                continue;
-            }
-
-            break;
-        }
-    }
-
-    for (uint32_t i = 0; i < DRM_MAX_MINOR; i++) {
-        render_path = "/dev/dri/renderD" + std::to_string(128 + i);
-        render_fd = open(card_path.c_str(), O_RDONLY);
-        if (render_fd >= 0) {
-            render_version = drmGetVersion(render_fd);
-            if (!render_version) {
-                LOG(ERROR) << "Failed to get DRM version for render " << std::to_string(i);
-                close(render_fd);
-                render_fd = -1;
-                continue;
-            }
-
-            render_name = std::string(render_version->name, render_version->name_len);
-            LOG(INFO) << "Render " << std::to_string(i) << " is " << render_name;
-
-            break;
-        }
-    }
-
-    // If we have sysfb cards only
-    if (card_fd < 0 && !drm_sysfb_cards.empty()) {
-        card_is_sysfb = true;
-        for (const auto& i : drm_sysfb_cards) {
-            card_path = "/dev/dri/card" + std::to_string(i);
-            card_fd = open(card_path.c_str(), O_RDONLY);
-            if (card_fd >= 0) {
-                card_version = drmGetVersion(card_fd);
-                if (!card_version) {
-                    LOG(ERROR) << "Failed to get DRM version for card " << std::to_string(i);
-                    close(card_fd);
-                    card_fd = -1;
-                    continue;
-                }
-                card_name = std::string(card_version->name, card_version->name_len);
-            }
-        }
-    }
-
-    if (card_fd < 0) {
-        LOG(ERROR) << "Failed to open any DRM card device, falling back to framebuffer display";
+    if (!drm_card.has_value()) {
+        LOG(ERROR) << "Falling back to framebuffer display";
         SetupFramebufferDisplay();
         return;
     }
 
-    SetProperty(kGraphicsCardNameProp, card_name);
-    SetProperty(kGraphicsRenderNameProp, render_name);
+    SetProperty(kGraphicsCardNameProp, drm_card.value().name);
+    SetProperty(kGraphicsRenderNameProp, drm_render.has_value() ?
+                                         drm_render.value().name :
+                                         "");
 
-    SetDefaultsForDrmDisplay(card_fd, render_fd);
+    SetDefaultsForDrmDisplay(drm_card.value(), drm_render);
 
     // DRM HWC tries the first or the specified card node
-    SetProperty(kHwcDrmDeviceProp, card_path);
+    SetProperty(kHwcDrmDeviceProp, drm_card.value().name);
 
     // Minigbm tries the first render node, and then the first card node
 
     // Card
-    if (kMustUseFbDisplayCards.find(card_name) != kMustUseFbDisplayCards.end()) {
+    if (kMustUseFbDisplayCards.find(drm_card.value().name) !=
+        kMustUseFbDisplayCards.end()) {
         LOG(INFO) << "This DRM card must use framebuffer display for now";
         SetupFramebufferDisplay();
-    } else if (card_is_sysfb) {
+    } else if (drm_card.value().is_sysfb) {
         DrmSysfbCard();
-    } else if (card_name == "amdgpu") {
+    } else if (drm_card.value().name == "amdgpu") {
         // nothing
-    } else if (card_name == "apple") {
+    } else if (drm_card.value().name == "apple") {
         // Not checking with "asahi" here, because it seems like it appears when simpledrm is enabled, and does not work with 3D graphics
         // nothing
-    } else if (card_name == "i915") {
-        DrmI915(card_fd, false);
-    } else if (card_name == "msm") {
-        DrmMsmCard(card_fd);
-    } else if (card_name == "nouveau") {
+    } else if (drm_card.value().name == "i915") {
+        DrmI915(drm_card.value().fd, false);
+    } else if (drm_card.value().name == "msm") {
+        DrmMsmCard(drm_card.value().fd);
+    } else if (drm_card.value().name == "nouveau") {
         // nothing
-    } else if (card_name == "qxl") {
+    } else if (drm_card.value().name == "qxl") {
         DrmQxlCard();
-    } else if (card_name == "radeon") {
+    } else if (drm_card.value().name == "radeon") {
         // nothing
-    } else if (card_name == "virtio_gpu") {
-        DrmVirtiogpu(card_fd, false, render_name);
-    } else if (card_name == "vmwgfx") {
+    } else if (drm_card.value().name == "virtio_gpu") {
+        DrmVirtiogpu(drm_card.value().fd, false,
+                     drm_render.has_value() ? drm_render.value().name : "");
+    } else if (drm_card.value().name == "vmwgfx") {
         DrmVmwgfxCard();
     } else {
-        DrmUnknownCard(card_name);
+        DrmUnknownCard(drm_card.value().name);
     }
 
     // Render
-    if (render_fd < 0) {
-        LOG(INFO) << "No DRM render found";
-    } else if (render_name == "amdgpu") {
+    if (!drm_render.has_value()) {
+        // No DRM render found
+    } else if (drm_render.value().name == "amdgpu") {
         DrmAmdgpuRender();
-    } else if (render_name == "apple" || render_name == "asahi") {
+    } else if (drm_render.value().name == "apple" || drm_render.value().name == "asahi") {
         DrmAsahiRender();
-    } else if (render_name == "i915") {
-        DrmI915(render_fd, true);
-    } else if (render_name == "msm") {
+    } else if (drm_render.value().name == "i915") {
+        DrmI915(drm_render.value().fd, true);
+    } else if (drm_render.value().name == "msm") {
         // nothing
-    } else if (render_name == "nouveau") {
+    } else if (drm_render.value().name == "nouveau") {
         DrmNouveauRender();
-    } else if (render_name == "radeon") {
+    } else if (drm_render.value().name == "radeon") {
         DrmRadeonRender();
-    } else if (render_name == "virtio_gpu") {
-        DrmVirtiogpu(render_fd, true, render_name);
-    } else if (render_name == "vmwgfx") {
+    } else if (drm_render.value().name == "virtio_gpu") {
+        DrmVirtiogpu(drm_render.value().fd, true, drm_render.value().name);
+    } else if (drm_render.value().name == "vmwgfx") {
         DrmVmwgfxRender();
     } else {
-        DrmUnknownRender(render_name);
+        DrmUnknownRender(drm_render.value().name);
     }
 
-    if (card_version) drmFreeVersion(card_version);
-    if (render_version) drmFreeVersion(render_version);
-    if (card_fd >= 0) close(card_fd);
-    if (render_fd >= 0) close(render_fd);
+    CleanupDrmDevice(drm_card.value());
+    if (drm_render.has_value()) CleanupDrmDevice(drm_render.value());
 }
 
 }  // namespace
