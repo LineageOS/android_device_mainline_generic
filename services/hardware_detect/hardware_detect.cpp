@@ -557,6 +557,7 @@ void DrmI915(int fd, bool is_render) {
             // From Intel Core to pre-Skylake (HD Graphics 510)
             // Except for Atom Processor Z36xxx/Z37xxx
             SetProperty("ro.vendor.hwc.drm.avoid_using_alpha_bits_for_framebuffer", "1");
+            SetProperty("ro.vendor.hwc.drm.disable_planes", "1");
         }
         if (is_render && (value <= 0x0F33 ||
             (value >= 0x1602 && value <= 0x162E) ||
