@@ -71,6 +71,7 @@ constexpr char kBootPreferDrmCardNameProp[] = "ro.boot.prefer_drm_card_name";
 constexpr char kBootPreferDrmRenderNameProp[] = "ro.boot.prefer_drm_render_name";
 
 constexpr char kHwcDrmDeviceProp[] = "vendor.hwc.drm.device";
+constexpr char kMinigbmDeviceProp[] = "vendor.minigbm.device";
 
 constexpr char kMinigbmGenericBackendProp[] = "vendor.minigbm.generic_backend";
 
@@ -998,6 +999,9 @@ void DetectGraphics(void) {
     SetProperty(kHwcDrmDeviceProp, drm_card.value().name);
 
     // Minigbm tries the first render node, and then the first card node
+    SetProperty(kMinigbmDeviceProp, drm_render.has_value() ?
+                                    drm_render.value().name :
+                                    drm_card.value().name);
 
     // Card
     if (kMustUseFbDisplayCards.find(drm_card.value().name) !=
