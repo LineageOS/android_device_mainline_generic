@@ -276,8 +276,8 @@ android_pixel_format_t gSfNativeWindowBuffersFormat = HAL_PIXEL_FORMAT_RGBA_8888
 
 const std::unordered_map<std::string, int*> kBootOverridesProp = {
         {"gles_version", &gGlesVersion},
-        {"gralloc_hal_service", reinterpret_cast<int*>(gGrallocHalService)},
-        {"hwc_hal_service", reinterpret_cast<int*>(gHwcHalService)},
+        {"gralloc_hal_service", reinterpret_cast<int*>(&gGrallocHalService)},
+        {"hwc_hal_service", reinterpret_cast<int*>(&gHwcHalService)},
         {"hw_audio_primary", reinterpret_cast<int*>(&gHwAudioPrimary)},
         {"hw_egl", reinterpret_cast<int*>(&gHwEgl)},
         {"hw_gralloc", reinterpret_cast<int*>(&gHwGralloc)},
