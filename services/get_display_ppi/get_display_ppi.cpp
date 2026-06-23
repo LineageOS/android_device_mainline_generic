@@ -5,6 +5,7 @@
 
 #include <android-base/logging.h>
 #include <android-base/properties.h>
+#include <android-base/strings.h>
 
 #include <cmath>
 #include <cstdint>
@@ -76,10 +77,24 @@ static bool findFirstConnectedDisplay(DisplayInfo& info)
 {
     const fs::path drm("/sys/class/drm");
 
+    auto hwc_device = GetProperty("vendor.hwc.drm.device", "");
+    if (!hwc_device.empty()) {
+        hwc_device = hwc_device.substr(hwc_device.find_last_of('/') + 1);
+        LOG(INFO) << __FUNCTION__ << "(): Filter " << hwc_device;
+    }
+
     for (const auto& entry : fs::directory_iterator(drm))
     {
         if (!entry.is_directory())
             continue;
+
+        std::string name = entry.path().filename();
+        if (!hwc_device.empty()) {
+            if (!StartsWith(name, hwc_device)) {
+                LOG(INFO) << __FUNCTION__ << "(): Skipping " << name;
+                continue;
+            }
+        }
 
         fs::path status = entry.path() / "status";
         fs::path edid   = entry.path() / "edid";
