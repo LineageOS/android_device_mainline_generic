@@ -96,8 +96,8 @@ struct HalService {
     std::list<std::string> vintf_fragments;
 };
 
-enum class GrallocHalServices {
-    Unset,
+enum class GrallocHalServices : int {
+    Unset = 0,
     MinigbmUpstream,
     V2_0,
 };
@@ -119,8 +119,8 @@ const std::unordered_map<GrallocHalServices, const HalService*> kGrallocHalServi
     {GrallocHalServices::V2_0, &kGrallocV2_0HalService},
 };
 
-enum class HwcHalServices {
-    Unset,
+enum class HwcHalServices : int {
+    Unset = 0,
     DrmFb,
     DrmUpstream,
     V2_2,
@@ -161,8 +161,8 @@ const std::unordered_map<HwcHalServices, const HalService*> kHwcHalServiceMap = 
 // `apex_base_name`, `apex_full_name` or full name of APEX that is empty
 std::unordered_map<std::string, std::string> HalServiceApexSelections;
 
-enum class HwAudioPrimary {
-    Unset,
+enum class HwAudioPrimary : int {
+    Unset = 0,
     Tinyhal,
 };
 
@@ -170,8 +170,8 @@ const std::unordered_map<HwAudioPrimary, std::string> kHwAudioPrimaryMap = {
         {HwAudioPrimary::Tinyhal, "tinyhal"},
 };
 
-enum class HwEgl {
-    Unset,
+enum class HwEgl : int {
+    Unset = 0,
     Angle,
     Mesa,
 };
@@ -181,8 +181,8 @@ const std::unordered_map<HwEgl, std::string> kHwEglMap = {
         {HwEgl::Mesa, "mesa"},
 };
 
-enum class HwGralloc {
-    Unset,
+enum class HwGralloc : int {
+    Unset = 0,
     Default,
     Gbm,
     MinigbmUpstream,
@@ -194,15 +194,15 @@ const std::unordered_map<HwGralloc, std::string> kHwGrallocMap = {
         {HwGralloc::MinigbmUpstream, "minigbm_upstream"},
 };
 
-enum class HwHwc {
-    Unset,
+enum class HwHwc : int {
+    Unset = 0,
 };
 
 const std::unordered_map<HwHwc, std::string> kHwHwcMap = {
 };
 
-enum class HwVulkan {
-    Unset,
+enum class HwVulkan : int {
+    Unset = 0,
     Asahi,
     Broadcom,
     Freedreno,
@@ -226,8 +226,8 @@ const std::unordered_map<HwVulkan, std::string> kHwVulkanMap = {
         {HwVulkan::Panfrost, "panfrost"},
 };
 
-enum class UsbGadgetApex {
-    Unset,
+enum class UsbGadgetApex : int {
+    Unset = 0,
     Mainline,
     None,
 };
@@ -237,8 +237,8 @@ const std::unordered_map<UsbGadgetApex, std::string> kUsbGadgetApexMap = {
         {UsbGadgetApex::None, "com.android.hardware.usb.gadget.none"},
 };
 
-enum class VulkanApex {
-    Unset,
+enum class VulkanApex : int {
+    Unset = 0,
     No_apex,
     Swiftshader,
 };
@@ -248,8 +248,8 @@ const std::unordered_map<VulkanApex, std::string> kVulkanApexMap = {
         {VulkanApex::Swiftshader, "org.lineageos.device.graphics.vulkan.swiftshader"},
 };
 
-enum class MinigbmGenericBackend {
-    Unset,
+enum class MinigbmGenericBackend : int {
+    Unset = 0,
     DmabufHeap,
     DumbGeneric,
     GbmMesa,
