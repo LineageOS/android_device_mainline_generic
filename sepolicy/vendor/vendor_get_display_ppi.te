@@ -3,4 +3,5 @@ type vendor_get_display_ppi_exec, exec_type, vendor_file_type, file_type;
 
 init_daemon_domain(vendor_get_display_ppi);
 
+get_prop(vendor_get_display_ppi, vendor_hwc_drm_prop)
 set_prop(vendor_get_display_ppi, vendor_get_display_ppi_prop)
