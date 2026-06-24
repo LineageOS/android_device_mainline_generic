@@ -33,6 +33,12 @@
 
 extern bool fs_mgr_get_boot_config(const std::string& key, std::string* out_val);
 
+namespace android {
+namespace fs_mgr {
+bool ParseFstabFromString(const std::string& fstab_str, bool proc_mounts, Fstab* fstab_out);
+}  // namespace fs_mgr
+}  // namespace android
+
 namespace MountHandler {
 
 namespace fs = std::filesystem;
@@ -45,7 +51,7 @@ using android::base::Split;
 using android::base::StartsWith;
 using android::base::unique_fd;
 using android::dm::LoopControl;
-using android::fs_mgr::ReadFstabFromFile;
+using android::fs_mgr::ParseFstabFromString;
 using android::init::mkdir_recursive;
 using MountHelpers::TryAccessDir;
 using MountHelpers::TryAccessFile;
@@ -254,6 +260,23 @@ Fstab fstab_userdata_on_tmpfs = {
     }
 };
 
+// Copy of ReadFstabFromFileCommon() from libfstab/fstab.cpp
+// In order to get rid of calling SkipMountingPartitions()
+bool ReadFstabFromFstabFile(const std::string& path, Fstab* fstab) {
+    std::string fstab_str;
+    if (!android::base::ReadFileToString(path, &fstab_str, /* follow_symlinks = */ true)) {
+        PLOG(ERROR) << __FUNCTION__ << "(): failed to read file: '" << path << "'";
+        return false;
+    }
+
+    if (!ParseFstabFromString(fstab_str, false, fstab)) {
+        LOG(ERROR) << __FUNCTION__ << "(): failed to load fstab from : '" << path << "'";
+        return false;
+    }
+
+    return true;
+}
+
 void ParseConfig(void) {
     bool ret;
     std::string tmp;
@@ -263,7 +286,7 @@ void ParseConfig(void) {
         for (const auto& fstab_suffix : config_addon_fstab_suffix) {
             const std::string addon_fstab_name = kAddonFstabPrefix + fstab_suffix;
             Fstab tmp_fstab;
-            if (!ReadFstabFromFile("/system/etc/" + addon_fstab_name, &tmp_fstab)) {
+            if (!ReadFstabFromFstabFile("/system/etc/" + addon_fstab_name, &tmp_fstab)) {
                 LOG(ERROR) << "Failed to load addon fstab " << addon_fstab_name;
                 continue;
             }
