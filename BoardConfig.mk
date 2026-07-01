@@ -34,6 +34,7 @@ BOARD_KERNEL_CMDLINE := \
     audit=0 \
     console=tty0 \
     firmware_class.path=/mnt/vendor/firmware/ \
+    memtest=1 \
     mitigations=off \
     rdinit=/system/bin/generic_init \
     sysctl.kernel.firmware_config.force_sysfs_fallback=1 \
