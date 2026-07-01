@@ -2,6 +2,10 @@
 
 Based on repositories from LineageOS org, the lists below might be not applicable to any other upstream.
 
+## external/boringssl
+
+Apply from [here](../.patches/external/boringssl).
+
 ## external/mesa
 
 All the entries [here](https://review.lineageos.org/q/project:LineageOS/android_external_mesa+owner:me.cafebabe@gmail.com+status:open).

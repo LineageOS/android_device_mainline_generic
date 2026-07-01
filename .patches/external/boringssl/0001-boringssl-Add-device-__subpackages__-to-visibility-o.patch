@@ -1,0 +1,26 @@
+From 1a15a60114f9edc96c9f7bd83c9f202dfef5d20d Mon Sep 17 00:00:00 2001
+From: Yumi Yukimura <me.cafebabe@gmail.com>
+Date: Wed, 1 Jul 2026 17:27:32 +0800
+Subject: [PATCH] boringssl: Add `//device:__subpackages__` to visibility of
+ `libcrypto_static`
+
+Change-Id: I4f3f233118900b0ba5320639e56c76c8645b913f
+---
+ Android.bp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/Android.bp b/Android.bp
+index 9ec7b94d..c8ce6924 100644
+--- a/Android.bp
++++ b/Android.bp
+@@ -378,6 +378,7 @@ cc_library_static {
+         "//system/security/keystore/tests",
+         "//system/security/provisioner",
+         "//test/vts-testcase/security/avb",
++        "//device:__subpackages__",
+         "//vendor:__subpackages__",
+     ],
+     min_sdk_version: "29",
+-- 
+2.47.3
+
