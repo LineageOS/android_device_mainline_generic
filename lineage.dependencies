@@ -6,9 +6,5 @@
   {
     "repository": "android_kernel_mainline_configs",
     "target_path": "kernel/mainline/configs"
-  },
-  {
-    "repository": "android_kernel_virt_virtio",
-    "target_path": "kernel/virt/virtio"
   }
 ]
