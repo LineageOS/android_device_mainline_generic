@@ -4,6 +4,10 @@
     "target_path": "device/mainline/common"
   },
   {
+    "repository": "android_external_tinyhal",
+    "target_path": "external/tinyhal"
+  },
+  {
     "repository": "android_kernel_mainline_configs",
     "target_path": "kernel/mainline/configs"
   }
