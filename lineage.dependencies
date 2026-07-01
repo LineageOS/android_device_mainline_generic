@@ -10,5 +10,9 @@
   {
     "repository": "android_kernel_mainline_configs",
     "target_path": "kernel/mainline/configs"
+  },
+  {
+    "repository": "android_prebuilts_bootmgr",
+    "target_path": "prebuilts/bootmgr"
   }
 ]
