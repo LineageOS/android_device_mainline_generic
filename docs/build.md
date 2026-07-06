@@ -13,6 +13,7 @@ source build/envsetup.sh
 ## Decide the target device to build
 
 This device tree currently have the following target devices:
+- `Generic_arm`
 - `Generic_arm64`
 - `Generic_x86_64`
 
