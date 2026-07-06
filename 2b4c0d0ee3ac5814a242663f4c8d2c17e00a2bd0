@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "cc08df4c_3e33990b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 32245
+      },
+      "writtenOn": "2026-07-06T16:03:12Z",
+      "side": 1,
+      "message": "mesa be like:\n```\nFAILED: src/compiler/rust/libcompiler.rlib \nrustc --target armv7-linux-androideabi -C panic\u003dabort -C \u0027link-args\u003d-target armv7-linux-androideabi -lc\u0027 -C linker\u003d/android/LineageOS/23.2/prebuilts/clang/host/linux-x86/clang-r563880c/bin/clang -C link-arg\u003d -C link-arg\u003d-fuse-ld\u003dlld --color\u003dalways -C debug-assertions\u003dno -C overflow-checks\u003dno --crate-type rlib --edition\u003d2021 -C opt-level\u003d3 --crate-name compiler --emit dep-info\u003dsrc/compiler/rust/compiler.d --emit link\u003dsrc/compiler/rust/libcompiler.rlib --out-dir src/compiler/rust/libcompiler.rlib.p -C metadata\u003d56103fb@@compiler@sta -Dboxed_slice_into_iter -Ddeprecated_safe_2024 -Dimpl_trait_overcaptures -Dkeyword_idents_2024 -Dmissing_unsafe_on_extern -Dnever_type_fallback_flowing_into_unsafe -Drust_2024_prelude_collisions -Dstatic_mut_refs -Dunsafe_op_in_unsafe_fn -Aclippy::identity_op -Aclippy::len_zero -Aclippy::manual_range_contains -Aclippy::needless_range_loop -Aclippy::redundant_field_names -Aclippy::upper_case_acronyms -Aclippy::vec_box -Aclippy::write_with_newline -Aclippy::not_unsafe_ptr_arg_deref -Anon_snake_case -lstatic:-bundle,+verbatim\u003dlibcompiler_c_helpers.a -Lsrc/compiler/rust src/compiler/rust/libcompiler.rlib.p/structured/lib.rs\nerror[E0080]: evaluation of constant value failed\n   --\u003e src/compiler/rust/libcompiler.rlib.p/structured/bindings.rs:278:26\n    |\n278 |     [\"Size of _IO_FILE\"][::std::mem::size_of::\u003c_IO_FILE\u003e() - 216usize];\n    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ attempt to compute `124_usize - 216_usize`, which would overflow\n\nerror[E0080]: evaluation of constant value failed\n```",
+      "revId": "2b4c0d0ee3ac5814a242663f4c8d2c17e00a2bd0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
