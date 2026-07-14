@@ -47,15 +47,8 @@ TARGET_USERIMAGES_USE_EXT4 := true
 # Graphics (Mesa)
 BOARD_MESA3D_BUILD_LIBGBM := true
 BOARD_MESA3D_GALLIUM_DRIVERS += \
-    nouveau \
-    radeonsi \
-    r300 \
-    r600 \
-    svga \
     virgl
 BOARD_MESA3D_VULKAN_DRIVERS += \
-    amd \
-    nouveau \
     virtio
 
 # Graphics composer (drmfb)

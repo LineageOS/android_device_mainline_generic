@@ -15,18 +15,15 @@ TARGET_CPU_VARIANT := generic
 
 # Graphics (Mesa)
 BOARD_MESA3D_GALLIUM_DRIVERS += \
-    etnaviv \
     freedreno \
     lima \
     panfrost \
-    tegra \
     v3d \
     vc4
 
 BOARD_MESA3D_VULKAN_DRIVERS += \
     broadcom \
     freedreno \
-    imagination \
     panfrost
 
 # Graphics allocator (minigbm)

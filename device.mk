@@ -47,9 +47,6 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     amdgpu.ids
 
-# Graphics (Mesa)
-TARGET_MESA_ENABLE_SOFTWARE_RENDERER := true
-
 # Graphics allocator
 PRODUCT_COPY_FILES += \
     device/mainline/common/optional/graphics-allocator-hal_default-hidl-2.0/manifest_mainline_common_graphics-allocator-hal_default-hidl-2.0.xml:$(TARGET_COPY_OUT_VENDOR)/etc/vintf_src/manifest_mainline_common_graphics-allocator-hal_default-hidl-2.0.xml \
