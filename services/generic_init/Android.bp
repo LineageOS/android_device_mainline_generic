@@ -5,10 +5,8 @@ GLOBAL_HWASAN_OPTIONS = select(soong_config_variable("ANDROID", "HWASAN_ENABLED"
     default: [],
 })
 
-cc_binary {
-    name: "generic_init_first_stage",
-
-    stem: "generic_init",
+cc_defaults {
+    name: "generic_init_first_stage_defaults",
 
     srcs: [
         "first_stage_console.cpp",
@@ -52,7 +50,6 @@ cc_binary {
 
         "libfs_mgr",
         "libavb",
-        "libcrypto_static",
         "libfec",
         "libfec_rs",
         "libfs_avb",
@@ -60,7 +57,6 @@ cc_binary {
         "liblp",
     ],
 
-    static_executable: true,
     system_shared_libs: [],
 
     cflags: [
@@ -118,10 +114,28 @@ cc_binary {
         hwaddress: false,
         memtag_stack: false,
     },
+}
 
+cc_defaults {
+    name: "generic_init_first_stage",
+    stem: "generic_init",
+    defaults: ["generic_init_first_stage_defaults"],
+    static_executable: true,
+    static_libs: [
+        "libcrypto_static",
+    ],
     // Install adb_debug.prop into debug ramdisk.
     // This allows adb root on a user build, when debug ramdisk is used.
     required: ["adb_debug.prop"],
-
     ramdisk: true,
+}
+
+cc_defaults {
+    name: "generic_init_first_stage_recovery",
+    stem: "generic_init",
+    defaults: ["generic_init_first_stage_defaults"],
+    shared_libs: [
+        "libcrypto",
+    ],
+    recovery: true,
 }
