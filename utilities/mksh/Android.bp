@@ -1,0 +1,28 @@
+//
+// SPDX-FileCopyrightText: The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+cc_binary {
+    name: "sh_vendor_bootstrap",
+    defaults: ["sh-defaults"],
+    stem: "sh_bootstrap",
+    bootstrap: true,
+    vendor: true,
+    // Even though sh_vendor is only built for device these flags need to be in a target: android:
+    // for ordering reasons with the flags from the default modules.
+    target: {
+        android: {
+            cflags: [
+                // Additional flags for vendor variant
+                "-UMKSH_DEFAULT_PROFILEDIR",
+                "-UMKSHRC_PATH",
+                "-UMKSH_DEFAULT_EXECSHELL",
+                "-DMKSH_DEFAULT_PROFILEDIR=\"/vendor/etc\"",
+                "-DMKSHRC_PATH=\"/vendor/etc/mkshrc\"",
+                "-DMKSH_DEFAULT_EXECSHELL=\"/vendor/bin/sh_bootstrap\"",
+                "-DMKSH_DEFPATH_OVERRIDE=\"/vendor/bin:/vendor/xbin\"",
+            ],
+        },
+    },
+}

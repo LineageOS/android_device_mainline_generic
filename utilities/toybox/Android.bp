@@ -1,0 +1,28 @@
+//
+// SPDX-FileCopyrightText: The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+cc_binary {
+    name: "toybox_vendor_bootstrap",
+    defaults: ["toybox-defaults"],
+
+    // This doesn't actually prevent us from dragging in libc++ at runtime
+    // on the device because libnetd_client.so is C++, but it improves host
+    // startup time.
+    stl: "none",
+
+    shared_libs: [
+        "libcrypto",
+        "liblog",
+        "libselinux",
+        "libz",
+    ],
+
+    cflags: [
+        "-Wno-unused-but-set-variable",
+    ],
+
+    bootstrap: true,
+    vendor: true,
+}
