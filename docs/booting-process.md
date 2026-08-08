@@ -78,6 +78,12 @@ and let it finally do the rest of mounts.
 
 After mounting completes, the root directory will be switched over to the mounted Android OS.
 
+### Executing custom vendor init program
+
+The `generic_init` will execute `/vendor/bin/vendor_init`.
+
+Preparations such as generating firmwares can be done in that program.
+
 ### Loading kernel modules from the mounted partitions
 
 The `generic_init` will firstly load the modules listed on `modules.load`
