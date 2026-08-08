@@ -146,7 +146,15 @@ constexpr std::string_view GetPageSizeSuffix(std::string_view dirname) {
     return "";
 }
 
-void ExecuteSecondStageInit(void) {
+void ExecuteVendorInitProgram(void) {
+    const char* path = "/vendor/bin/vendor_init";
+    const char* args[] = {path, nullptr};
+
+    if (access(path, F_OK) != 0) return;
+    ForkExecveAndWaitForCompletion(path, const_cast<char**>(args));
+}
+
+void ExecuteSecondStageInit(char** argv) {
     const char* path = "/system/bin/init";
     const char* args[] = {path, "selinux_setup", nullptr};
 
@@ -162,6 +170,8 @@ void ExecuteSecondStageInit(void) {
     // are inherited beyond exec.
     setenv("HWASAN_OPTIONS", STRINGIFY(HWASAN_OPTIONS), true);
 #endif
+
+    SetStdioToDevNull(argv);
 
     execv(path, const_cast<char**>(args));
 
@@ -406,7 +416,6 @@ int FirstStageMain(int argc, char** argv) {
                     "mode=0755,uid=0,gid=0"));
 #undef CHECKCALL
 
-    SetStdioToDevNull(argv);
     // Now that tmpfs is mounted on /dev and we have /dev/kmsg, we can actually
     // talk to the outside world...
     InitKernelLogging(argv);
@@ -494,6 +503,8 @@ int FirstStageMain(int argc, char** argv) {
 
         MountHandler::OnPostBlockDevices();
 
+        ExecuteVendorInitProgram();
+
         if (!LoadKernelModules(boot_mode, false,
                             want_parallel, "/vendor/lib/modules")) {
             LOG(ERROR) << "Failed to load kernel modules from vendor partition";
@@ -520,7 +531,7 @@ int FirstStageMain(int argc, char** argv) {
     dup2(fd, STDERR_FILENO);
     close(fd);
 
-    ExecuteSecondStageInit();
+    ExecuteSecondStageInit(argv);
 
     return 1;
 }
