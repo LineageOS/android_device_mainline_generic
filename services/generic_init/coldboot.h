@@ -34,7 +34,7 @@ class ColdBoot {
         : uevent_listener_(uevent_listener),
           uevent_handlers_(uevent_handlers) {}
 
-    void Run();
+    void Run(bool use_parallel);
 
   private:
     void RegenerateUevents();

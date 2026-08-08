@@ -33,25 +33,26 @@ void ColdBoot::RegenerateUevents() {
     });
 }
 
-void ColdBoot::Run() {
+void ColdBoot::Run(bool use_parallel) {
     android::base::Timer cold_boot_timer;
 
     RegenerateUevents();
 
     std::unique_ptr<ColdbootRunner> runner;
 
-/*
-    unsigned int parallelism = std::thread::hardware_concurrency() ?: 4;
-    if (false) {
-        runner = std::make_unique<ColdbootRunnerThreadPool>(
-                parallelism, uevent_queue_, uevent_handlers_);
+    if (use_parallel) {
+        unsigned int parallelism = std::thread::hardware_concurrency() ?: 4;
+        if (false) {
+            runner = std::make_unique<ColdbootRunnerThreadPool>(
+                    parallelism, uevent_queue_, uevent_handlers_);
+        } else {
+            runner = std::make_unique<ColdbootRunnerSubprocess>(
+                    parallelism, uevent_queue_, uevent_handlers_);
+        }
     } else {
-        runner = std::make_unique<ColdbootRunnerSubprocess>(
-                parallelism, uevent_queue_, uevent_handlers_);
+        runner = std::make_unique<ColdbootRunnerNoParallel>(
+                uevent_queue_, uevent_handlers_);
     }
-*/
-    runner = std::make_unique<ColdbootRunnerNoParallel>(
-            uevent_queue_, uevent_handlers_);
 
     runner->StartInBackground();
 

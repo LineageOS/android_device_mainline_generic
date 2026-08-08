@@ -172,9 +172,11 @@ void parallel_main_loop(const UeventListener& uevent_listener,
         threads.emplace_back([&graph, &uevent_handlers] {
             while (true) {
                 auto uevent = graph.WaitDependencyFreeEvent();
+                LOG(INFO) << "Handle uevent " << ConstructUeventString(uevent);
                 for (auto& uevent_handler : uevent_handlers) {
                     uevent_handler->HandleUevent(uevent);
                 }
+                LOG(INFO) << "Handled uevent";
                 graph.MarkEventCompleted(uevent.seqnum);
             }
         });
@@ -183,7 +185,7 @@ void parallel_main_loop(const UeventListener& uevent_listener,
     uevent_listener.Poll([&graph](const Uevent& uevent) {
         graph.Add(uevent);
         return ListenerAction::kContinue;
-    });
+    }, true, 5s);
 }
 
 int ueventd_main(const UeventdConfiguration& ueventd_configuration, bool first_run) {
@@ -239,7 +241,7 @@ int ueventd_main(const UeventdConfiguration& ueventd_configuration, bool first_r
             /*serial_handler_after_cold_boot=*/false));
 
     ColdBoot cold_boot(uevent_listener, uevent_handlers);
-    cold_boot.Run();
+    cold_boot.Run(!first_run);
 
     if (first_run && MountHandler::CanQuitUeventd(false)) {
         LOG(INFO) << "Exit ueventd";
@@ -260,7 +262,7 @@ int ueventd_main(const UeventdConfiguration& ueventd_configuration, bool first_r
     // Restore prio before main loop
     setpriority(PRIO_PROCESS, 0, 0);
 
-    if (ueventd_configuration.enable_parallel_ueventd_main_loop) {
+    if (!first_run) {
         size_t num_threads =
                 std::thread::hardware_concurrency() != 0 ? std::thread::hardware_concurrency() : 4;
         if (ueventd_configuration.parallel_main_loop_max_workers.has_value()) {
