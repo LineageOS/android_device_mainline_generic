@@ -69,6 +69,13 @@ enum class ImageType {
     USERDATA = 4,
 };
 
+enum class PartitionScheme {
+    UNKNOWN,
+    MBR,
+    GPT,
+    READ_ERROR
+};
+
 struct BlockDeviceInfo {
     // uevent fields
     std::string devname;
@@ -635,16 +642,16 @@ process_android_system_partition_subdirs:
     return;
 }
 
-std::string SetupLoopDevice(const std::string& image, bool rw) {
-    unique_fd image_fd(TEMP_FAILURE_RETRY(open(image.c_str(), (rw ? O_RDWR : O_RDONLY) | O_CLOEXEC, (rw ? 0600 : 0400))));
-    if (image_fd.get() == -1) {
-        PLOG(ERROR) << "Cannot open image path: " << image;
+std::string SetupLoopDevice(const std::string& file, bool rw, __u32 lo_flags) {
+    unique_fd file_fd(TEMP_FAILURE_RETRY(open(file.c_str(), (rw ? O_RDWR : O_RDONLY) | O_CLOEXEC, (rw ? 0600 : 0400))));
+    if (file_fd.get() == -1) {
+        PLOG(ERROR) << "Cannot open file path: " << file;
         return "";
     }
 
     LoopControl loop_control;
     std::string loop_device;
-    if (!loop_control.Attach(image_fd.get(), 5s, &loop_device)) {
+    if (!loop_control.Attach(file_fd.get(), 5s, &loop_device)) {
         return "";
     }
 
@@ -655,7 +662,7 @@ std::string SetupLoopDevice(const std::string& image, bool rw) {
     }
 
     struct loop_info64 info = {
-        .lo_flags = 0
+        .lo_flags = lo_flags
     };
     if (!rw) info.lo_flags |= LO_FLAGS_READ_ONLY;
     if (ioctl(loop_fd.get(), LOOP_SET_STATUS64, &info)) {
@@ -666,6 +673,61 @@ std::string SetupLoopDevice(const std::string& image, bool rw) {
     LoopControl::EnableDirectIo(loop_fd.get());
 
     return loop_device;
+}
+
+PartitionScheme DetectPartitionScheme(const char* device_path) {
+    int fd = open(device_path, O_RDONLY);
+    if (fd < 0) {
+        return PartitionScheme::READ_ERROR;
+    }
+
+    // Retrieve logical sector size (handles 512-byte sectors and 4Kn native drives)
+    uint32_t sector_size = 512;
+    if (ioctl(fd, BLKSSZGET, &sector_size) < 0 || sector_size == 0) {
+        sector_size = 512;
+    }
+
+    // 1. Read Sector 0 (LBA 0)
+    uint8_t lba0[512];
+    if (read(fd, lba0, sizeof(lba0)) != sizeof(lba0)) {
+        close(fd);
+        return PartitionScheme::READ_ERROR;
+    }
+
+    // Validate MBR magic bytes (0x55, 0xAA at offsets 510-511)
+    if (lba0[510] != 0x55 || lba0[511] != 0xAA) {
+        close(fd);
+        return PartitionScheme::UNKNOWN;
+    }
+
+    // 2. Check for Protective MBR (0xEE partition type) inside LBA 0
+    bool has_protective_mbr = false;
+    for (int i = 0; i < 4; ++i) {
+        uint8_t partition_type = lba0[446 + (i * 16) + 4];
+        if (partition_type == 0xEE) {
+            has_protective_mbr = true;
+            break;
+        }
+    }
+
+    // 3. Read LBA 1 to check for GPT Header Signature ("EFI PART")
+    bool has_gpt_header = false;
+    if (lseek(fd, sector_size, SEEK_SET) != (off_t)-1) {
+        uint8_t gpt_sig[8];
+        if (read(fd, gpt_sig, sizeof(gpt_sig)) == sizeof(gpt_sig)) {
+            if (std::memcmp(gpt_sig, "EFI PART", 8) == 0) {
+                has_gpt_header = true;
+            }
+        }
+    }
+
+    close(fd);
+
+    if (has_gpt_header || has_protective_mbr) {
+        return PartitionScheme::GPT;
+    }
+
+    return PartitionScheme::MBR;
 }
 
 }  // namespace
@@ -701,7 +763,30 @@ void OnBlockDeviceAdd(const android::init::Uevent& uevent, const std::string& de
     info.partuuid = uevent.partition_uuid;
     info.links = links;
     info.is_partition = std::isdigit(static_cast<unsigned char>(info.devname.back()));
-    if (!ParseApfsBlockDevice(&info)) ParseBlockDevice(&info);
+
+    auto part_scheme = DetectPartitionScheme(info.devpath.c_str());
+    if (info.is_partition &&
+        part_scheme != PartitionScheme::READ_ERROR &&
+        part_scheme != PartitionScheme::UNKNOWN) {
+        std::string new_loop_device = SetupLoopDevice(info.devpath, true, LO_FLAGS_PARTSCAN);
+        if (new_loop_device.empty()) {
+            // Retry with read-only
+            new_loop_device = SetupLoopDevice(info.devpath, false, LO_FLAGS_PARTSCAN);
+        }
+        if (new_loop_device.empty()) {
+            LOG(ERROR) << __FUNCTION__ << ": Failed to create loop device for block device "
+                        << info.devpath << " which contains partition table";
+        } else {
+            LOG(INFO) << __FUNCTION__ << ": Created loop device "
+                        << new_loop_device << " for block device "
+                        << info.devpath << " which contains partition table";
+        }
+    } else {
+        if (!ParseApfsBlockDevice(&info)) {
+            ParseBlockDevice(&info);
+        }
+    }
+
     block_devices->insert({devpath, std::make_shared<BlockDeviceInfo>(info)});
     UpdateMountInfo(block_devices->at(devpath));
 }
@@ -889,7 +974,7 @@ void OnPostBlockDevices(bool is_recovery_mode) {
             };
             if (!bdinfo->rw) entry.flags |= MS_RDONLY;
 
-            entry.blk_device = SetupLoopDevice(firmware_img, bdinfo->rw);
+            entry.blk_device = SetupLoopDevice(firmware_img, bdinfo->rw, 0);
             if (entry.blk_device.empty()) {
                 LOG(FATAL) << "Failed to setup loop device for image " << firmware_img;
             }
@@ -911,7 +996,7 @@ void OnPostBlockDevices(bool is_recovery_mode) {
             };
             if (!bdinfo->rw) entry.flags |= MS_RDONLY;
 
-            entry.blk_device = SetupLoopDevice(img, bdinfo->rw);
+            entry.blk_device = SetupLoopDevice(img, bdinfo->rw, 0);
             if (entry.blk_device.empty()) {
                 LOG(FATAL) << "Failed to setup loop device for image " << img;
             }
