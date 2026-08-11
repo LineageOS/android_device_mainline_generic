@@ -34,7 +34,7 @@ Write the following content to `device/mainline/<device>/lineage.dependencies` f
 And then, run the following commands:
 
 ```
-lineage/scripts/repopick/repopick.py 492595
+lineage/scripts/repopick/repopick.py 496352
 vendor/lineage/build/tools/roomservice.py generic true device/mainline/<device>
 ```
 
