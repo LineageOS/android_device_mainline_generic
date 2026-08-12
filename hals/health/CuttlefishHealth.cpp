@@ -76,6 +76,9 @@ ScopedAStatus CuttlefishHealth::getBatteryHealthData(BatteryHealthData* out) {
   out->batterySerialNumber =
       "d1f92fe7591ff096ca3a29c450a5a3d1";  // MD5("battery serial")
   out->batteryPartStatus = BatteryPartStatus::UNSUPPORTED;
+  out->batteryManufacturer = "Google";
+  out->batteryModelName = "Cuttlefish fake battery";
+  out->batteryVoltageMinDesignUv = 4321000;
   return ScopedAStatus::ok();
 }
 
