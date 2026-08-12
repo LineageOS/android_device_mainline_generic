@@ -26,6 +26,5 @@ Here are the most common maintenance tasks:
 | `configs/properties/vendor_bluetooth_profiles.prop` | `device/linaro/dragonboard/product.prop` |
 | `hals/health` | `hardware/interfaces/health/aidl/default` and `device/google/cuttlefish/guest/hals/health/health-aidl.cpp` |
 | `overlays/rro_overlays/MainlineGenericWifiOverlay` | `device/google/cuttlefish/shared/phone/overlays/CuttlefishWifiOverlay` |
-| `services/generic_init` | `system/core/init` |
 | `services/modprobe_kernel/modprobe.cpp` | `system/core/toolbox/modprobe.cpp` |
 | `services/overlay_remounter_override/overlay_remounter.cpp` | `system/core/overlay_remounter/overlay_remounter.cpp` |
