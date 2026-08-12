@@ -76,8 +76,8 @@ constexpr char kMinigbmDeviceProp[] = "vendor.minigbm.device";
 
 constexpr char kMinigbmGenericBackendProp[] = "vendor.minigbm.generic_backend";
 
-constexpr char kSfNativeWindowBuffersFormatProp[] =
-        "ro.surface_flinger.native_window_buffers_format";
+//constexpr char kSfNativeWindowBuffersFormatProp[] =
+//        "ro.surface_flinger.native_window_buffers_format";
 constexpr char kSfSupportsBackgroundBlurProp[] = "ro.surface_flinger.supports_background_blur";
 
 constexpr char kUsbAdbDisabledProp[] = "vendor.sys.usb.adb.disabled";
@@ -375,9 +375,8 @@ bool ApplySelections(void) {
 
     if (gSfNativeWindowBuffersFormat != HAL_PIXEL_FORMAT_RGBA_8888) {
         LOG(INFO) << "Set surfaceflinger native window buffers format to "
-                  << std::to_string(gSfNativeWindowBuffersFormat);
-        ret &= SetProperty(kSfNativeWindowBuffersFormatProp,
-                           std::to_string(gSfNativeWindowBuffersFormat));
+                  << std::to_string(gSfNativeWindowBuffersFormat)
+                  << " (no-op)";
     }
 
     LOG(INFO) << "Set OpenGLES version to " << std::to_string(gGlesVersion);
