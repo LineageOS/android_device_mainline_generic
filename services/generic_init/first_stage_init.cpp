@@ -318,7 +318,7 @@ bool LoadKernelModules(BootMode boot_mode, bool strict, bool want_parallel, cons
     for (const auto& mod : GetModulesToLoad(module_base_dir, module_load_list)) {
         m.LoadWithAliases(mod, strict);
     }
-    bool retval = (want_parallel) ? m.LoadModulesParallel(std::thread::hardware_concurrency())
+    bool retval = (want_parallel) ? m.LoadModulesParallel(std::thread::hardware_concurrency(), true, false)
                                   : m.LoadListedModules(strict);
     modules_loaded = m.GetModuleCount();
     if (modules_loaded > 0) {
