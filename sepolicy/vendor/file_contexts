@@ -1,5 +1,5 @@
 # Configuration files
-/vendor/etc/overlay-product-etc-init(/.*)?		u:object_r:system_file:s0
+/vendor/etc/overlay-system_ext-etc-init(/.*)?		u:object_r:system_file:s0
 
 # Executables
 /vendor/bin/hw/android\.hardware\.health-service\.generic		u:object_r:hal_health_default_exec:s0

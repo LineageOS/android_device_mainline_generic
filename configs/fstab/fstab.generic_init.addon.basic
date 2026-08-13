@@ -1,4 +1,4 @@
 #<src>				<mnt_point>				<type>		<mnt_flags and options>												<fs_mgr_flags>
 /vendor/xbin/overlay_remounter_override	/system/xbin/overlay_remounter	none		bind														nofail
-overlay				/system/product/etc/init		overlay		ro,lowerdir=/vendor/etc/overlay-product-etc-init:/product/etc/init						nofail
+overlay				/system/system_ext/etc/init		overlay		ro,lowerdir=/vendor/etc/overlay-system_ext-etc-init:/system_ext/etc/init					nofail
 overlay				/vendor					overlay		rw,lowerdir=/vendor,upperdir=/mnt/vendor/vendor-overlayfs-upperdir,workdir=/mnt/vendor/vendor-overlayfs-workdir	nofail

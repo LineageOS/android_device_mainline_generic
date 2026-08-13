@@ -6,28 +6,28 @@
 prebuilt_etc {
     name: "console_override.rc",
     src: "console_override.rc",
-    sub_dir: "overlay-product-etc-init",
+    sub_dir: "overlay-system_ext-etc-init",
     vendor: true,
 }
 
 prebuilt_etc {
     name: "device_generic_logging.rc",
     src: "device_generic_logging.rc",
-    sub_dir: "overlay-product-etc-init",
+    sub_dir: "overlay-system_ext-etc-init",
     vendor: true,
 }
 
 prebuilt_etc {
     name: "device_generic_settings.rc",
     src: "device_generic_settings.rc",
-    sub_dir: "overlay-product-etc-init",
+    sub_dir: "overlay-system_ext-etc-init",
     vendor: true,
 }
 
 prebuilt_etc {
     name: "init_dev_config_override.rc",
     src: "init_dev_config_override.rc",
-    sub_dir: "overlay-product-etc-init",
+    sub_dir: "overlay-system_ext-etc-init",
     vendor: true,
 }
 
