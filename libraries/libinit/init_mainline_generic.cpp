@@ -18,6 +18,10 @@ void enable_memfd_if_ashmem_is_absent(void) {
     }
 }
 
+void vendor_process_bootenv(void) {
+    vendor_process_bootenv_mainline_common();
+}
+
 void vendor_load_properties() {
     vendor_load_properties_mainline_common();
     enable_memfd_if_ashmem_is_absent();
