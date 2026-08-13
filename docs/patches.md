@@ -15,6 +15,7 @@ You can simply check out the repository to the HEAD of the top entry on the chai
 
 - `drm/vmwgfx: add ABGR8888 to vmw_primary_plane_formats[]`: https://review.lineageos.org/c/LineageOS/android_kernel_virt_virtio/+/423579
 - `HACK: selinux: Force permissive when androidboot.selinux=permissive`: https://review.lineageos.org/c/LineageOS/android_kernel_virt_virtio/+/464426
+- `Revert "drm/virtio: Don't create a context with default param if context_init is supported"` : https://review.lineageos.org/c/LineageOS/android_kernel_virt_virtio/+/496668
 
 ## system/core
 
