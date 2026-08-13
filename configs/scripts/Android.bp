@@ -6,5 +6,5 @@
 prebuilt_bin {
     name: "device_generic_settings.sh",
     src: "device_generic_settings.sh",
-    product_specific: true,
+    vendor: true,
 }
