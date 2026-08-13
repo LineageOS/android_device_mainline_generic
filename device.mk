@@ -140,6 +140,7 @@ PRODUCT_PACKAGES += \
 
 $(call soong_config_set,libinit,vendor_init_lib,//$(DEVICE_PATH):init_mainline_generic)
 $(call soong_config_set,mainline_common_libinit,set_properties_from,both)
+$(call soong_config_set_bool,mainline_generic_init,override_aosp_first_stage_init,$(MAINLINE_GENERIC_OVERRIDE_AOSP_FIRST_STAGE_INIT))
 
 # Input
 PRODUCT_COPY_FILES += \

@@ -35,9 +35,13 @@ BOARD_KERNEL_CMDLINE := \
     console=tty0 \
     firmware_class.path=/mnt/vendor/firmware/ \
     mitigations=off \
-    rdinit=/system/bin/generic_init \
     sysctl.kernel.firmware_config.force_sysfs_fallback=1 \
     sysctl.kernel.modprobe=/vendor/bin/modprobe_kernel
+
+ifneq ($(MAINLINE_GENERIC_OVERRIDE_AOSP_FIRST_STAGE_INIT),true)
+BOARD_KERNEL_CMDLINE += \
+    rdinit=/system/bin/generic_init
+endif
 
 # Filesystem
 TARGET_USERIMAGES_SPARSE_EXT_DISABLED := true
