@@ -199,6 +199,10 @@ PRODUCT_COPY_FILES += \
     $(DEVICE_PATH)/configs/misc/pci.ids:$(TARGET_COPY_OUT_VENDOR)/pci.ids \
     $(DEVICE_PATH)/configs/misc/usb.ids:$(TARGET_COPY_OUT_VENDOR)/usb.ids
 
+PRODUCT_PACKAGES += \
+    sh_vendor_bootstrap \
+    toybox_vendor_bootstrap
+
 # Virtualization
 $(call inherit-product, packages/modules/Virtualization/apex/product_packages.mk)
 
