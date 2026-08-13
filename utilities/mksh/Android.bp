@@ -6,7 +6,8 @@
 cc_binary {
     name: "sh_vendor_bootstrap",
     defaults: ["mksh_defaults"],
-    stem: "sh_bootstrap",
+    relative_install_path: "bootstrap",
+    stem: "sh",
     bootstrap: true,
     vendor: true,
     // Even though sh_vendor is only built for device these flags need to be in a target: android:
@@ -20,8 +21,8 @@ cc_binary {
                 "-UMKSH_DEFAULT_EXECSHELL",
                 "-DMKSH_DEFAULT_PROFILEDIR=\"/vendor/etc\"",
                 "-DMKSHRC_PATH=\"/vendor/etc/mkshrc\"",
-                "-DMKSH_DEFAULT_EXECSHELL=\"/vendor/bin/sh_bootstrap\"",
-                "-DMKSH_DEFPATH_OVERRIDE=\"/vendor/bin:/vendor/xbin\"",
+                "-DMKSH_DEFAULT_EXECSHELL=\"/vendor/bin/bootstrap/sh\"",
+                "-DMKSH_DEFPATH_OVERRIDE=\"/vendor/bin/bootstrap:/vendor/bin:/vendor/xbin\"",
             ],
         },
     },
