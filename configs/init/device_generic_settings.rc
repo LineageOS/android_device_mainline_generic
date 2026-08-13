@@ -1,4 +1,4 @@
-service device_generic_settings /product/bin/device_generic_settings.sh
+service device_generic_settings /system/bin/sh /vendor/bin/device_generic_settings.sh
     class late_start
     user root
     group root
