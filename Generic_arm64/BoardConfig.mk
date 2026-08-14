@@ -23,6 +23,7 @@ BOARD_MESA3D_GALLIUM_DRIVERS += \
     etnaviv \
     freedreno \
     lima \
+    nouveau \
     panfrost \
     tegra \
     v3d \
