@@ -112,6 +112,15 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     vndservicemanager
 
+# HWDB
+PRODUCT_PACKAGES += \
+    60-sensor.hwdb \
+    hwdb_d_pci_ids \
+    hwdb_d_usb_ids
+
+$(call soong_config_set_bool,hwdb_d,pci_ids_enabled,true)
+$(call soong_config_set_bool,hwdb_d,usb_ids_enabled,true)
+
 # Init
 PRODUCT_COPY_FILES += \
     system/core/rootdir/ueventd.rc:$(TARGET_COPY_OUT_RAMDISK)/system/etc/ueventd.ramdisk.rc
@@ -201,10 +210,6 @@ PRODUCT_PACKAGES += \
     com.android.hardware.usb.gadget.none
 
 # Utilities
-PRODUCT_COPY_FILES += \
-    $(DEVICE_PATH)/configs/misc/pci.ids:$(TARGET_COPY_OUT_VENDOR)/pci.ids \
-    $(DEVICE_PATH)/configs/misc/usb.ids:$(TARGET_COPY_OUT_VENDOR)/usb.ids
-
 PRODUCT_PACKAGES += \
     sh_vendor_bootstrap \
     toybox_vendor_bootstrap
