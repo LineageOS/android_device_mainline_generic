@@ -44,6 +44,9 @@ TARGET_USERIMAGES_SPARSE_EXT_DISABLED := true
 TARGET_USERIMAGES_USE_F2FS := true
 TARGET_USERIMAGES_USE_EXT4 := true
 
+# Graphics (Allocator)
+$(call soong_config_set_bool,minigbm_upstream,disable_virgl_native_yuv,true)
+
 # Graphics (Mesa)
 BOARD_MESA3D_BUILD_LIBGBM := true
 BOARD_MESA3D_GALLIUM_DRIVERS += \
@@ -57,9 +60,6 @@ BOARD_MESA3D_VULKAN_DRIVERS += \
     amd \
     nouveau \
     virtio
-
-# Graphics composer (drmfb)
-$(call soong_config_set_bool,drmfb_composer,uses_minigbm,true)
 
 # Kernel
 ifneq ($(MAINLINE_GENERIC_KERNEL_USE),)
