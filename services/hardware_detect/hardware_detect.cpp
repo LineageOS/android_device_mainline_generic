@@ -57,6 +57,8 @@ constexpr char kHwGrallocProp[] = "ro.hardware.gralloc";
 constexpr char kHwHwcProp[] = "ro.hardware.hwcomposer";
 constexpr char kHwVulkanProp[] = "ro.hardware.vulkan";
 
+constexpr char kGrallocApexProp[] = "ro.boot.vendor.apex.com.android.hardware.graphics.allocator";
+constexpr char kHwcApexProp[] = "ro.boot.vendor.apex.com.android.hardware.graphics.composer";
 constexpr char kUsbGadgetApexProp[] = "ro.boot.vendor.apex.com.android.hardware.usb.gadget";
 constexpr char kVulkanApexProp[] = "ro.boot.vendor.apex.org.lineageos.device.graphics.vulkan";
 
@@ -117,68 +119,6 @@ struct HalService {
     std::list<std::string> vintf_fragments;
 };
 
-enum class GrallocHalServices : int {
-    Unset = 0,
-    MinigbmUpstream,
-    V2_0,
-};
-
-const HalService kMinigbmUpstreamHalService = {
-    .name = "Minigbm (Upstream)",
-    .init_rc_services = {"vendor.graphics.allocator.minigbm_upstream"},
-    .vintf_fragments = {"allocator.minigbm_upstream.xml", "mapper.minigbm_upstream.xml"},
-};
-
-const HalService kGrallocV2_0HalService = {
-    .name = "AOSP Gralloc v2.0",
-    .init_rc_services = {"vendor.gralloc-2-0"},
-    .vintf_fragments = {"manifest_mainline_common_graphics-allocator-hal_default-hidl-2.0.xml"},
-};
-
-const std::unordered_map<GrallocHalServices, const HalService*> kGrallocHalServiceMap = {
-    {GrallocHalServices::MinigbmUpstream, &kMinigbmUpstreamHalService},
-    {GrallocHalServices::V2_0, &kGrallocV2_0HalService},
-};
-
-enum class HwcHalServices : int {
-    Unset = 0,
-    DrmFb,
-    DrmUpstream,
-    V2_2,
-    V2_4,
-};
-
-const HalService kDrmFbHalService = {
-    .name = "DRM Framebuffer",
-    .init_rc_services = {"vendor.hwcomposer-2-1.drmfb"},
-    .vintf_fragments = {"android.hardware.graphics.composer@2.1-service.drmfb.xml"},
-};
-
-const HalService kDrmUpstreamHalService = {
-    .name = "DRM (Upstream)",
-    .init_rc_services = {"vendor.hwcomposer-3.drm_upstream"},
-    .vintf_fragments = {"hwc3-drm-upstream.xml"},
-};
-
-const HalService kHwcV2_2HalService = {
-    .name = "AOSP HWComposer v2.2",
-    .init_rc_services = {"vendor.hwcomposer-2-2"},
-    .vintf_fragments = {"manifest_mainline_common_graphics-composer-hal_default-hidl-2.2.xml"},
-};
-
-const HalService kHwcV2_4HalService = {
-    .name = "AOSP HWComposer v2.4",
-    .init_rc_services = {"vendor.hwcomposer-2-4"},
-    .vintf_fragments = {"manifest_mainline_common_graphics-composer-hal_default-hidl-2.4.xml"},
-};
-
-const std::unordered_map<HwcHalServices, const HalService*> kHwcHalServiceMap = {
-    {HwcHalServices::DrmFb, &kDrmFbHalService},
-    {HwcHalServices::DrmUpstream, &kDrmUpstreamHalService},
-    {HwcHalServices::V2_2, &kHwcV2_2HalService},
-    {HwcHalServices::V2_4, &kHwcV2_4HalService},
-};
-
 // `apex_base_name`, `apex_full_name` or full name of APEX that is empty
 std::unordered_map<std::string, std::string> HalServiceApexSelections;
 
@@ -200,26 +140,6 @@ enum class HwEgl : int {
 const std::unordered_map<HwEgl, std::string> kHwEglMap = {
         {HwEgl::Angle, "angle"},
         {HwEgl::Mesa, "mesa"},
-};
-
-enum class HwGralloc : int {
-    Unset = 0,
-    Default,
-    Gbm,
-    MinigbmUpstream,
-};
-
-const std::unordered_map<HwGralloc, std::string> kHwGrallocMap = {
-        {HwGralloc::Default, "default"},
-        {HwGralloc::Gbm, "gbm"},
-        {HwGralloc::MinigbmUpstream, "minigbm_upstream"},
-};
-
-enum class HwHwc : int {
-    Unset = 0,
-};
-
-const std::unordered_map<HwHwc, std::string> kHwHwcMap = {
 };
 
 enum class HwVulkan : int {
@@ -245,6 +165,30 @@ const std::unordered_map<HwVulkan, std::string> kHwVulkanMap = {
         {HwVulkan::Asahi, "asahi"},     {HwVulkan::Broadcom, "broadcom"},
         {HwVulkan::Imagination, "imagination"},
         {HwVulkan::Panfrost, "panfrost"},
+};
+
+enum class GrallocApex : int {
+    Unset = 0,
+    Minigbm,
+    Fb,
+};
+
+const std::unordered_map<GrallocApex, std::string> kGrallocApexMap = {
+        {GrallocApex::Minigbm, "com.android.hardware.graphics.allocator.minigbm_upstream"},
+        {GrallocApex::Fb, "com.android.hardware.graphics.allocator.fb"},
+};
+
+enum class HwcApex : int {
+    Unset = 0,
+    Drm,
+    DrmFb,
+    Empty,
+};
+
+const std::unordered_map<HwcApex, std::string> kHwcApexMap = {
+        {HwcApex::Drm, "com.android.hardware.graphics.composer.drm_hwcomposer_upstream"},
+        {HwcApex::DrmFb, "com.android.hardware.graphics.composer.drmfb"},
+        {HwcApex::Empty, "com.android.hardware.graphics.composer.empty"},
 };
 
 enum class UsbGadgetApex : int {
@@ -283,13 +227,11 @@ const std::unordered_map<MinigbmGenericBackend, std::string> kMinigbmGenericBack
 };
 
 int gGlesVersion = kGlesVersion20;
-GrallocHalServices gGrallocHalService = GrallocHalServices::Unset;
-HwcHalServices gHwcHalService = HwcHalServices::Unset;
 HwAudioPrimary gHwAudioPrimary = HwAudioPrimary::Unset;
 HwEgl gHwEgl = HwEgl::Unset;
-HwGralloc gHwGralloc = HwGralloc::Unset;
-HwHwc gHwHwc = HwHwc::Unset;
 HwVulkan gHwVulkan = HwVulkan::Unset;
+GrallocApex gGrallocApex = GrallocApex::Unset;
+HwcApex gHwcApex = HwcApex::Unset;
 UsbGadgetApex gUsbGadgetApex = UsbGadgetApex::Unset;
 VulkanApex gVulkanApex = VulkanApex::Unset;
 MinigbmGenericBackend gMinigbmGenericBackend = MinigbmGenericBackend::Unset;
@@ -297,13 +239,11 @@ android_pixel_format_t gSfNativeWindowBuffersFormat = HAL_PIXEL_FORMAT_RGBA_8888
 
 const std::unordered_map<std::string, int*> kBootOverridesProp = {
         {"gles_version", &gGlesVersion},
-        {"gralloc_hal_service", reinterpret_cast<int*>(&gGrallocHalService)},
-        {"hwc_hal_service", reinterpret_cast<int*>(&gHwcHalService)},
         {"hw_audio_primary", reinterpret_cast<int*>(&gHwAudioPrimary)},
         {"hw_egl", reinterpret_cast<int*>(&gHwEgl)},
-        {"hw_gralloc", reinterpret_cast<int*>(&gHwGralloc)},
-        {"hw_hwc", reinterpret_cast<int*>(&gHwHwc)},
         {"hw_vulkan", reinterpret_cast<int*>(&gHwVulkan)},
+        {"gralloc_apex", reinterpret_cast<int*>(&gGrallocApex)},
+        {"hwc_apex", reinterpret_cast<int*>(&gHwcApex)},
         {"usb_gadget_apex", reinterpret_cast<int*>(&gUsbGadgetApex)},
         {"vulkan_apex", reinterpret_cast<int*>(&gVulkanApex)},
         {"minigbm_generic_backend", reinterpret_cast<int*>(&gMinigbmGenericBackend)},
@@ -398,22 +338,6 @@ bool ApplySelections(void) {
         LOG(WARNING) << "Minigbm generic backend is unset";
     }
 
-    if (gHwGralloc != HwGralloc::Unset) {
-        strp = &kHwGrallocMap.at(gHwGralloc);
-        LOG(INFO) << "Set Gralloc module to " << *strp;
-        ret &= SetProperty(kHwGrallocProp, *strp);
-    } else {
-        LOG(WARNING) << "Gralloc module is unset";
-    }
-
-    if (gHwHwc != HwHwc::Unset) {
-        strp = &kHwHwcMap.at(gHwHwc);
-        LOG(INFO) << "Set Hwcomposer module to " << *strp;
-        ret &= SetProperty(kHwHwcProp, *strp);
-    } else {
-        LOG(WARNING) << "Hwcomposer module is unset";
-    }
-
     switch (gVulkanApex) {
         case VulkanApex::Unset:
             gVulkanApex = VulkanApex::No_apex;
@@ -442,26 +366,20 @@ bool ApplySelections(void) {
         LOG(WARNING) << "Vulkan APEX is unset";
     }
 
-    if (gGrallocHalService != GrallocHalServices::Unset) {
-        for (const auto& [ map_key, map_value ] : kGrallocHalServiceMap) {
-            if (map_key == gGrallocHalService) {
-                LOG(INFO) << "Set Graphics Allocator HAL service to " << map_value->name;
-            }
-            ret &= EnableHalService(map_value, map_key == gGrallocHalService);
-        }
+    if (gGrallocApex != GrallocApex::Unset) {
+        strp = &kGrallocApexMap.at(gGrallocApex);
+        LOG(INFO) << "Set Gralloc APEX to " << *strp;
+        ret &= SetProperty(kGrallocApexProp, *strp);
     } else {
-        LOG(WARNING) << "Graphics Allocator HAL service is unset";
+        LOG(WARNING) << "Gralloc APEX is unset";
     }
 
-    if (gHwcHalService != HwcHalServices::Unset) {
-        for (const auto& [ map_key, map_value ] : kHwcHalServiceMap) {
-            if (map_key == gHwcHalService) {
-                LOG(INFO) << "Set Graphics Composer HAL service to " << map_value->name;
-            }
-            ret &= EnableHalService(map_value, map_key == gHwcHalService);
-        }
+    if (gHwcApex != HwcApex::Unset) {
+        strp = &kHwcApexMap.at(gHwcApex);
+        LOG(INFO) << "Set HWComposer APEX to " << *strp;
+        ret &= SetProperty(kHwcApexProp, *strp);
     } else {
-        LOG(WARNING) << "Graphics Composer HAL service is unset";
+        LOG(WARNING) << "HWComposer APEX is unset";
     }
 
     // Enablue blur if not using Swiftshader graphics
@@ -494,11 +412,8 @@ void UseSwiftshaderGraphics(void) {
 }
 
 void SetupFramebufferDisplay(void) {
-    gHwGralloc = HwGralloc::Default;
-    gHwHwc = HwHwc::Unset;
-
-    gGrallocHalService = GrallocHalServices::V2_0;
-    gHwcHalService = HwcHalServices::V2_2;
+    gGrallocApex = GrallocApex::Fb;
+    gHwcApex = HwcApex::Empty;
 
     gSfNativeWindowBuffersFormat = HAL_PIXEL_FORMAT_BGRA_8888;
 
@@ -757,8 +672,7 @@ void SetDefaultsForDrmDisplay(const DrmDevice& card, const std::optional<DrmDevi
      * - HBM gralloc (standalone form is still a draft, minigbm backend form is used only for amdgpu for now)
      * - DRM gralloc (RIP)
      */
-    gGrallocHalService = GrallocHalServices::MinigbmUpstream;
-    gHwGralloc = HwGralloc::MinigbmUpstream;
+    gGrallocApex = GrallocApex::Minigbm;
 
     /*
      * HwComposer
@@ -770,12 +684,12 @@ void SetDefaultsForDrmDisplay(const DrmDevice& card, const std::optional<DrmDevi
      * (however we have some hacks in there too)
      */
     if (!drmSetClientCap(card.fd, DRM_CLIENT_CAP_ATOMIC, 1)) {
-        gHwcHalService = HwcHalServices::DrmUpstream;
+        gHwcApex = HwcApex::Drm;
         if (!IsDrmMultiplePlanesSupported(card)) {
             SetProperty("ro.vendor.hwc.drm.disable_planes", "1");
         }
     } else {
-        gHwcHalService = HwcHalServices::DrmFb;
+        gHwcApex = HwcApex::DrmFb;
     }
 
     /*
