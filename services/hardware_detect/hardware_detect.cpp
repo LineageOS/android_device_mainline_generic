@@ -805,10 +805,13 @@ bool IsDrmCardWithConnectorConnected(const DrmDevice& dev) {
     drmModeRes* resources = dev.drm_mode_res;
     int fd = dev.fd;
     bool result = false;
+    const bool was_master = drmIsMaster(fd) == 1;
+    const bool can_force_probe = was_master || drmSetMaster(fd) == 0;
 
     for (int i = 0; i < resources->count_connectors; i++) {
-        drmModeConnector *conn =
-            drmModeGetConnector(fd, resources->connectors[i]);
+        drmModeConnector* conn = can_force_probe
+                                         ? drmModeGetConnector(fd, resources->connectors[i])
+                                         : drmModeGetConnectorCurrent(fd, resources->connectors[i]);
 
         if (!conn) continue;
 
@@ -820,6 +823,8 @@ bool IsDrmCardWithConnectorConnected(const DrmDevice& dev) {
 
         if (result) break;
     }
+
+    if (can_force_probe && !was_master) drmDropMaster(fd);
 
     return result;
 }
@@ -847,7 +852,7 @@ std::pair<std::optional<DrmDevice>, std::optional<DrmDevice>> GetDrmCardRenderDe
         dev.is_render = StartsWith(std::string(entry.path().filename()), "renderD");
         dev.path = entry.path();
 
-        dev.fd = open(dev.path.c_str(), O_RDONLY);
+        dev.fd = open(dev.path.c_str(), dev.is_render ? O_RDONLY : O_RDWR);
         if (dev.fd < 0) {
             LOG(ERROR) << "Unable to open DRM device " << dev.path;
             continue;
