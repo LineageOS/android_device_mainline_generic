@@ -10,4 +10,3 @@ Contributions are welcome.
 - Keep improving the quality of the documentations
 - Make it possible to display YUV content on graphics cards that does not support it
 - Make the IIO sensors HAL work
-- Upgrade `drmfb-composer` and `gralloc.default` to AIDL interface
