@@ -815,7 +815,10 @@ bool IsDrmCardWithConnectorConnected(const DrmDevice& dev) {
 
         if (!conn) continue;
 
-        if (conn->connection == DRM_MODE_CONNECTED && conn->count_modes > 0) {
+        const bool connected = conn->connection == DRM_MODE_CONNECTED ||
+                (dev.name == "hyperv_drm" &&
+                 conn->connection == DRM_MODE_UNKNOWNCONNECTION);
+        if (connected && conn->count_modes > 0) {
             result = true;
         }
 
