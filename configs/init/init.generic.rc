@@ -50,7 +50,7 @@ on early-boot && property:ro.vendor.get_display_ppi.lcd_density=*
 on boot
     setprop ro.sf.lcd_density 160
 
-on property:ro.hardware.gralloc=default && property:sys.bootstat.first_boot_completed=1
+on property:init.svc.vendor.graphics.allocator.fb=running && property:sys.bootstat.first_boot_completed=1
     write /sys/class/vtconsole/vtcon0/bind 0
     write /sys/class/vtconsole/vtcon1/bind 0
 

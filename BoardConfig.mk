@@ -58,8 +58,8 @@ BOARD_MESA3D_VULKAN_DRIVERS += \
     nouveau \
     virtio
 
-# Graphics composer (drmfb)
-$(call soong_config_set_bool,drmfb_composer,uses_minigbm,true)
+# Graphics allocator
+$(call soong_config_set_bool,minigbm_upstream,disable_virgl_native_yuv,true)
 
 # Kernel
 ifneq ($(MAINLINE_GENERIC_KERNEL_USE),)
