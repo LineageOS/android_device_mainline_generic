@@ -14,7 +14,7 @@ TARGET_ENABLE_FBKEYBOARD := true
 TARGET_ENABLE_VIRT_WIFI := true
 TARGET_EXTERNAL_CAMERA_PROVIDER_HAL := default-aidl
 TARGET_GRAPHICS_ALLOCATOR_HAL := minigbm-upstream
-TARGET_GRAPHICS_COMPOSER_HAL := custom
+TARGET_GRAPHICS_COMPOSER_HAL := drm_hwcomposer
 TARGET_HEALTH_HAL := custom
 TARGET_HOSTAPD_AND_WPA_SUPPLICANT_FORM := legacy
 TARGET_MESA_DO_NOT_SET_AS_DEFAULT := true
@@ -56,43 +56,20 @@ PRODUCT_PACKAGES += \
 TARGET_MESA_ENABLE_SOFTWARE_RENDERER := true
 
 # Graphics allocator
-PRODUCT_COPY_FILES += \
-    device/mainline/common/optional/graphics-allocator-hal_default-hidl-2.0/manifest_mainline_common_graphics-allocator-hal_default-hidl-2.0.xml:$(TARGET_COPY_OUT_VENDOR)/etc/vintf_src/manifest_mainline_common_graphics-allocator-hal_default-hidl-2.0.xml \
-    external/minigbm-upstream/cros_gralloc/aidl/allocator.minigbm_upstream.xml:$(TARGET_COPY_OUT_VENDOR)/etc/vintf_src/allocator.minigbm_upstream.xml \
-    external/minigbm-upstream/cros_gralloc/mapper_stablec/mapper.minigbm_upstream.xml:$(TARGET_COPY_OUT_VENDOR)/etc/vintf_src/mapper.minigbm_upstream.xml
+PRODUCT_PACKAGES += \
+    com.android.hardware.graphics.allocator.fb
 
 PRODUCT_PACKAGES += \
-    android.hardware.graphics.allocator@2.0-impl \
-    android.hardware.graphics.allocator@2.0-service \
-    android.hardware.graphics.mapper@2.0-impl-2.1
-
-PRODUCT_PACKAGES += \
-    gralloc.gbm
+    mapper.fb
 
 TARGET_MINIGBM_UPSTREAM_ENABLE_GBM_MESA_DRIVER := true
-TARGET_MINIGBM_UPSTREAM_INSIDE_APEX := false
 
-$(call soong_config_set_bool,libui,legacy_gralloc,true)
-$(call soong_config_set_bool,minigbm_upstream,include_vintf_fragments,false)
+$(call soong_config_set,fb_graphics,RELEASE_SM_OPEN_DECLARED_PASSTHROUGH_HAL,$(RELEASE_SM_OPEN_DECLARED_PASSTHROUGH_HAL))
 
 # Graphics composer
-PRODUCT_COPY_FILES += \
-    device/mainline/common/optional/drm_hwcomposer/manifest_mainline_common_graphics-composer-hal_drm_hwcomposer_libhardware.xml:$(TARGET_COPY_OUT_VENDOR)/etc/vintf_src/manifest_mainline_common_graphics-composer-hal_default-hidl-2.4.xml \
-    device/mainline/common/optional/graphics-composer-hal_default-hidl-2.2/manifest_mainline_common_graphics-composer-hal_default-hidl-2.2.xml:$(TARGET_COPY_OUT_VENDOR)/etc/vintf_src/manifest_mainline_common_graphics-composer-hal_default-hidl-2.2.xml \
-    external/drm_hwcomposer-upstream/hwc3/hwc3-drm-upstream.xml:$(TARGET_COPY_OUT_VENDOR)/etc/vintf_src/hwc3-drm-upstream.xml \
-    hardware/mainline/common/interfaces/graphics/composer/drmfb/android.hardware.graphics.composer@2.1-service.drmfb.xml:$(TARGET_COPY_OUT_VENDOR)/etc/vintf_src/android.hardware.graphics.composer@2.1-service.drmfb.xml
-
 PRODUCT_PACKAGES += \
-    android.hardware.graphics.composer@2.2-service \
-    android.hardware.graphics.composer@2.4-service
-
-PRODUCT_PACKAGES += \
-    android.hardware.composer.hwc3-service.drm_upstream \
-    android.hardware.graphics.composer@2.1-service.drmfb
-
-$(call soong_config_set_bool,drm_hwcomposer_upstream,include_init_rc,false)
-$(call soong_config_set_bool,drm_hwcomposer_upstream,include_vintf_fragments,false)
-$(call soong_config_set_bool,drmfb_composer,include_vintf_fragments,false)
+    com.android.hardware.graphics.composer.drmfb \
+    com.android.hardware.graphics.composer.empty
 
 # Graphics Vulkan
 PRODUCT_PACKAGES += \
