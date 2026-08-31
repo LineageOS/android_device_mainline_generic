@@ -109,8 +109,7 @@ BOARD_RAMDISK_USE_LZ4 := true
 
 # SELinux
 BOARD_VENDOR_SEPOLICY_DIRS += \
-    $(DEVICE_PATH)/sepolicy/vendor \
-    hardware/mainline/common/interfaces/graphics/composer/drmfb/sepolicy
+    $(DEVICE_PATH)/sepolicy/vendor
 
 SYSTEM_EXT_PRIVATE_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy/private
 SYSTEM_EXT_PUBLIC_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy/public
