@@ -58,9 +58,6 @@ BOARD_MESA3D_VULKAN_DRIVERS += \
     nouveau \
     virtio
 
-# Graphics composer (drmfb)
-$(call soong_config_set_bool,drmfb_composer,uses_minigbm,true)
-
 # Kernel
 ifneq ($(MAINLINE_GENERIC_KERNEL_USE),)
 MAINLINE_GENERIC_KERNEL_BOARDCONFIG_MK ?= $(TARGET_DEVICE_PATH)/kernels/$(MAINLINE_GENERIC_KERNEL_USE)/board.mk
