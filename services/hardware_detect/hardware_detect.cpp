@@ -8,10 +8,14 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <charconv>
+#include <cstdint>
 #include <filesystem>
 #include <list>
 #include <set>
 #include <string>
+#include <string_view>
+#include <tuple>
 #include <unordered_map>
 
 #define LOG_TAG "hardware_detect"
@@ -832,6 +836,17 @@ bool IsDrmCardWithConnectorConnected(const DrmDevice& dev) {
     return result;
 }
 
+std::tuple<int, uint32_t, std::string> DrmNodeSortKey(const fs::directory_entry& entry) {
+    const std::string name = entry.path().filename();
+    const bool is_render = StartsWith(name, "renderD");
+    const std::string_view suffix = is_render ? std::string_view(name).substr(7)
+                                              : std::string_view(name).substr(4);
+    uint32_t index = UINT32_MAX;
+    const auto [end, error] = std::from_chars(suffix.data(), suffix.data() + suffix.size(), index);
+    if (error != std::errc() || end != suffix.data() + suffix.size()) index = UINT32_MAX;
+    return {is_render ? 1 : 0, index, name};
+}
+
 std::pair<std::optional<DrmDevice>, std::optional<DrmDevice>> GetDrmCardRenderDevicePair(void) {
     std::vector<fs::directory_entry> all_entries;
     for (const auto& entry : fs::directory_iterator("/dev/dri/")) {
@@ -841,12 +856,11 @@ std::pair<std::optional<DrmDevice>, std::optional<DrmDevice>> GetDrmCardRenderDe
             all_entries.push_back(entry);
         }
     }
+    const bool reverse = GetBoolProperty(kBootEnumDrmInReverseProp, false);
     std::sort(all_entries.begin(), all_entries.end(),
-              [](const fs::directory_entry& a, const fs::directory_entry& b) {
-        if (GetBoolProperty(kBootEnumDrmInReverseProp, false)) {
-            return a.path().filename() > b.path().filename();
-        }
-        return a.path().filename() < b.path().filename();
+              [reverse](const fs::directory_entry& a, const fs::directory_entry& b) {
+        return reverse ? DrmNodeSortKey(a) > DrmNodeSortKey(b)
+                       : DrmNodeSortKey(a) < DrmNodeSortKey(b);
     });
 
     std::vector<DrmDevice> all_cards, all_renders;
