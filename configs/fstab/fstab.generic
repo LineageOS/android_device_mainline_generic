@@ -4,6 +4,7 @@
 #
 
 # External
+/devices/*/mmc* auto auto defaults voldmanaged=mmc:auto
 /devices/*/usb* auto auto defaults voldmanaged=usb:auto
 
 # ZRAM
