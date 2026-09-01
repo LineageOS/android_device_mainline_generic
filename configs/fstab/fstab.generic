@@ -4,6 +4,7 @@
 #
 
 # External
+/devices/*/block/mmcblk* auto auto defaults voldmanaged=mmc:auto
 /devices/*/block/sr* auto auto defaults voldmanaged=cdrom:auto
 /devices/*/usb* auto auto defaults voldmanaged=usb:auto
 
