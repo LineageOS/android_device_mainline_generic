@@ -5,6 +5,17 @@
 
 import /vendor/etc/init/hw/init.mainline.rc
 
+# Chowns
+service vendor.init-chowns /vendor/bin/sh /vendor/bin/init-chowns.sh
+    class early_hal
+    user root
+    group root
+    seclabel u:r:su:s0
+    oneshot
+
+on init
+    start vendor.init-chowns
+
 # Console
 service console_hvc0 /system/bin/sh
     class core

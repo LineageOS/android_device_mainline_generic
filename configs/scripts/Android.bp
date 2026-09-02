@@ -4,6 +4,12 @@
 //
 
 prebuilt_bin {
+    name: "init-chowns.sh",
+    src: "init-chowns.sh",
+    vendor: true,
+}
+
+prebuilt_bin {
     name: "device_generic_settings.sh",
     src: "device_generic_settings.sh",
     vendor: true,
