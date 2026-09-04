@@ -6,7 +6,7 @@ Should work if kernel sided sound driver works and `alsa-ucm-conf` contains the 
 
 ## Backlight
 
-The first backlight device appeared during boot is selected.
+The first backlight device appeared during boot is selected in most cases.
 
 ## Battery
 
@@ -53,7 +53,7 @@ No any chance yet.
 
 CPU rendered graphics is always available as fallback, but might need to be selected manually (Framebuffer display always does this).
 
-Hybrid GPU setup (i.e. one GPU for rendering and another GPU for display) is currently not supported.
+Hybrid GPU setup (i.e. one GPU for rendering and another GPU for display) is currently not supported, will only pick up the GPU for display.
 
 ## Input
 
@@ -72,9 +72,7 @@ To be done.
 
 ## Sensors
 
-IIO sensors HAL exists, and a library that reads sensors information from hwdb exists too, but has not been verified to work on this target yet.
-
-Currently, no sensor devices is supported.
+Sensors devices exposed via Linux IIO subsystem or Linux Input subsystem might be supported.
 
 ## USB
 
