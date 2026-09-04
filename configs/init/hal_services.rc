@@ -1,1 +1,0 @@
-# Must remove `interface` definition from every of such services, otherwise the selection logic is effectively useless

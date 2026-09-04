@@ -103,7 +103,6 @@ PRODUCT_PACKAGES += \
     device_generic_logging.rc \
     device_generic_settings.rc \
     device_generic_settings.sh \
-    hal_services.rc \
     init-chowns.sh \
     init_dev_config_override.rc
 
