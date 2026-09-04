@@ -6,8 +6,6 @@
 DEVICE_PATH := device/mainline/generic
 
 # Inherit from mainline/common
-TARGET_AUDIO_HAL := tinyhal
-TARGET_AUDIO_POLICY := custom
 TARGET_CONSOLE_AS_ROOT := true
 TARGET_ENABLE_LOGCAT_TO_SERIAL := true
 TARGET_ENABLE_FBKEYBOARD := true
@@ -25,17 +23,6 @@ $(call inherit-product, device/mainline/common/mainline_common.mk)
 
 # APEX
 OVERRIDE_PRODUCT_COMPRESSED_APEX := false
-
-# Audio
-PRODUCT_COPY_FILES += \
-    $(DEVICE_PATH)/configs/audio/primary_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/primary_audio_policy_configuration.xml \
-    device/google/cuttlefish/shared/config/audio/policy/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml \
-    frameworks/av/services/audiopolicy/config/audio_policy_volumes.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_volumes.xml \
-    frameworks/av/services/audiopolicy/config/bluetooth_with_le_audio_policy_configuration_7_0.xml:$(TARGET_COPY_OUT_VENDOR)/etc/bluetooth_with_le_audio_policy_configuration_7_0.xml \
-    frameworks/av/services/audiopolicy/config/default_volume_tables.xml:$(TARGET_COPY_OUT_VENDOR)/etc/default_volume_tables.xml \
-    frameworks/av/services/audiopolicy/config/r_submix_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/r_submix_audio_policy_configuration.xml
-
-TARGET_TINYHAL_DO_NOT_SET_AS_DEFAULT := true
 
 # Bootanimation
 TARGET_SCREEN_WIDTH := 300
