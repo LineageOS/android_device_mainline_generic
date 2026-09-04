@@ -162,7 +162,7 @@ $(call soong_config_set_bool,sensors_hal_mainline,include_all_permission_xmls,tr
 $(call soong_config_set_bool,sensors_hal_mainline,run_as_root,true)
 
 # Shipping API level
-PRODUCT_SHIPPING_API_LEVEL := 33
+TARGET_FOLLOWS_LATEST_SHIPPING_API_LEVEL := true
 
 # Soong namespaces
 PRODUCT_SOONG_NAMESPACES += \
@@ -177,6 +177,9 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     sh_vendor_bootstrap \
     toybox_vendor_bootstrap
+
+# VINTF
+TARGET_FOLLOWS_LATEST_VINTF_TARGET_LEVEL := true
 
 # Virtualization
 $(call inherit-product, packages/modules/Virtualization/apex/product_packages.mk)
