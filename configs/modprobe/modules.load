@@ -1,3 +1,4 @@
+industrialio-configfs.ko
 tun.ko
 uinput.ko
 virt_wifi.ko
