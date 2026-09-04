@@ -77,6 +77,7 @@ constexpr char kBootPreferDrmCardNameProp[] = "ro.boot.prefer_drm_card_name";
 constexpr char kBootPreferDrmRenderNameProp[] = "ro.boot.prefer_drm_render_name";
 
 constexpr char kHwcDrmDeviceProp[] = "vendor.hwc.drm.device";
+constexpr char kGrallocDeviceProp[] = "vendor.gralloc.device";
 constexpr char kMinigbmDeviceProp[] = "vendor.minigbm.device";
 
 constexpr char kMinigbmGenericBackendProp[] = "vendor.minigbm.generic_backend";
@@ -168,11 +169,13 @@ enum class GrallocApex : int {
     Unset = 0,
     Minigbm,
     Fb,
+    GbmMesa,
 };
 
 const std::unordered_map<GrallocApex, std::string> kGrallocApexMap = {
         {GrallocApex::Minigbm, "com.android.hardware.graphics.allocator.minigbm_upstream"},
         {GrallocApex::Fb, "com.android.hardware.graphics.allocator.fb"},
+        {GrallocApex::GbmMesa, "com.android.hardware.graphics.allocator.gm"},
 };
 
 enum class HwcApex : int {
@@ -402,6 +405,8 @@ void DrmUnknownCard(const std::string& card_name) {
 void DrmUnknownRender(const std::string& render_name) {
     LOG(WARNING) << "DRM render is not directly supported";
 
+    gGrallocApex = GrallocApex::GbmMesa;
+
     const std::unordered_map<std::string, HwVulkan> kRenderNameToHwVulkanMap = {
         {"panfrost", HwVulkan::Panfrost},
         {"panthor", HwVulkan::Panfrost},
@@ -419,8 +424,8 @@ void DrmAmdgpuRender(void) {
 }
 
 void DrmAsahiRender(void) {
-    gMinigbmGenericBackend = MinigbmGenericBackend::GbmMesa;
     gGlesVersion = kGlesVersion32;
+    gGrallocApex = GrallocApex::GbmMesa;
     gHwVulkan = HwVulkan::Asahi;
 }
 
@@ -512,6 +517,7 @@ err_fd_device_new:
 
 void DrmNouveauRender(void) {
     gGlesVersion = kGlesVersion31;
+    gGrallocApex = GrallocApex::GbmMesa;
     gHwVulkan = HwVulkan::Nouveau;
 }
 
@@ -897,6 +903,9 @@ void DetectGraphics(void) {
     SetProperty(kHwcDrmDeviceProp, drm_card.value().path);
 
     // Minigbm tries the first render node, and then the first card node
+    SetProperty(kGrallocDeviceProp, drm_render.has_value() ?
+                                    drm_render.value().path :
+                                    drm_card.value().path);
     SetProperty(kMinigbmDeviceProp, drm_render.has_value() ?
                                     drm_render.value().path :
                                     drm_card.value().path);
