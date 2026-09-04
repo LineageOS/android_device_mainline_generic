@@ -16,7 +16,6 @@ Here are the most common maintenance tasks:
 
 | Component path | Upstream |
 |----------------|----------|
-| `configs/audio/primary_audio_policy_configuration.xml` | `frameworks/av/services/audiopolicy/config/primary_audio_policy_configuration_7_0.xml` |
 | `configs/init/console_override.rc` | `console` service on `system/core/rootdir/init.rc` |
 | `configs/init/init_dev_config_override.rc` | `init_dev_config` service on `system/core/rootdir/init.rc` |
 | `configs/input/Generic.kl` | `frameworks/base/data/keyboards/Generic.kl` |

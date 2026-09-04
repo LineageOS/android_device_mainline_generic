@@ -2,9 +2,7 @@
 
 ## Audio
 
-Basic audio works, for most of the non-fancy sound cards, like the ones embedded in x86 desktop motherboards, and the PCI/USB ones.
-
-Only the first sink/source on the first sound card is selected.
+Should work if kernel sided sound driver works and `alsa-ucm-conf` contains the configuration.
 
 ## Backlight
 
