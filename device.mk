@@ -44,10 +44,16 @@ TARGET_MESA_ENABLE_SOFTWARE_RENDERER := true
 
 # Graphics allocator
 PRODUCT_PACKAGES += \
-    com.android.hardware.graphics.allocator.fb
+    com.android.hardware.graphics.allocator.fb \
+    com.android.hardware.graphics.allocator.gm
 
 PRODUCT_PACKAGES += \
-    mapper.fb
+    mapper.fb \
+    mapper.gm
+
+PRODUCT_PACKAGES += \
+    dri_gbm \
+    libgbm_mesa
 
 TARGET_MINIGBM_UPSTREAM_ENABLE_GBM_MESA_DRIVER := true
 
