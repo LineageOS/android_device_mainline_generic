@@ -128,19 +128,6 @@ struct DrmDevice {
     drmModeRes* drm_mode_res;
 };
 
-struct HalService {
-    std::string name;
-
-    std::string apex_base_name;
-    std::string apex_full_name;
-
-    std::list<std::string> init_rc_services;
-    std::list<std::string> vintf_fragments;
-};
-
-// `apex_base_name`, `apex_full_name` or full name of APEX that is empty
-std::unordered_map<std::string, std::string> HalServiceApexSelections;
-
 enum class HwEgl : int {
     Unset = 0,
     Angle,
@@ -274,31 +261,6 @@ void ProcessBootOverrides() {
     }
 }
 
-bool EnableHalService(const HalService* hal_service, bool enable) {
-    bool ret = true;
-    std::error_code ec;
-    LOG(INFO) << (enable ? "Enable" : "Disable") << " HAL service: " << hal_service->name;
-    if (enable) {
-        if (!hal_service->apex_base_name.empty() && !hal_service->apex_full_name.empty()) {
-            HalServiceApexSelections[hal_service->apex_base_name] = hal_service->apex_full_name;
-        }
-        for (const auto& vf : hal_service->vintf_fragments) {
-            if (!fs::copy_file(kVintfSrcDir + vf, kVintfDestDir + vf, ec)) {
-                LOG(ERROR) << "Failed to copy vintf fragment " << vf;
-                ret = false;
-            }
-        }
-    } else {
-        for (const auto& svc : hal_service->init_rc_services) {
-            if (!SetProperty(kCtlStopProp, svc)) {
-                LOG(ERROR) << "Failed to stop service " << svc;
-                ret = false;
-            }
-        }
-    }
-    return ret;
-}
-
 bool ApplySelections(void) {
     ProcessBootOverrides();
 
@@ -391,10 +353,6 @@ bool ApplySelections(void) {
     if (gVulkanApex != VulkanApex::Swiftshader) {
         LOG(INFO) << "Enable blur";
         ret &= SetProperty(kSfSupportsBackgroundBlurProp, "1");
-    }
-
-    for (const auto& [ apex_base_name, apex_full_name ] : HalServiceApexSelections) {
-        ret &= SetProperty(kApexSelectPropPrefix + apex_base_name, apex_full_name);
     }
 
     if (!ret) LOG(ERROR) << __FUNCTION__ << "(): Failed to set some properties";
