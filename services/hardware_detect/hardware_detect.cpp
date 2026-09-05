@@ -418,8 +418,8 @@ void DrmUnknownRender(const std::string& render_name) {
 }
 
 void DrmAmdgpuRender(void) {
-    gMinigbmGenericBackend = MinigbmGenericBackend::DumbGeneric;
     gGlesVersion = kGlesVersion32;
+    gGrallocApex = GrallocApex::GbmMesa;
     gHwVulkan = HwVulkan::Radeon;
 }
 
@@ -522,8 +522,8 @@ void DrmNouveauRender(void) {
 }
 
 void DrmRadeonRender(void) {
-    gMinigbmGenericBackend = MinigbmGenericBackend::DumbGeneric;
     gGlesVersion = kGlesVersion31;
+    gGrallocApex = GrallocApex::GbmMesa;
 }
 
 void DrmVirtiogpu(int fd, bool is_render, const std::string& render_name) {
