@@ -16,7 +16,7 @@ ro.surface_flinger.enable_frame_rate_override=false
 vendor.tablet2multitouch.device_names=QEMU QEMU USB Tablet,QEMU Virtio Tablet
 
 # Media
-media.c2.prefer_rgba8888=true
+media.c2.force_rgba8888=true
 
 # VirtWifi
 ro.boot.wifi_mac_prefix=5554
