@@ -18,6 +18,10 @@ vendor.tablet2multitouch.device_names=QEMU QEMU USB Tablet,QEMU Virtio Tablet
 # Media
 media.c2.force_rgba8888=true
 
+# Sensors
+vendor.sensors.composite.device_orientation.enabled=true
+vendor.sensors.wait_for_sensors=1
+
 # VirtWifi
 ro.boot.wifi_mac_prefix=5554
 
